@@ -187,6 +187,10 @@ export default function KycScreen() {
     const showStatusOnly = isApprovedStatus(currentStatus) || isReviewStatus(currentStatus);
     const meta = statusMeta[currentStatus] || statusMeta.under_review;
     const isRejected = currentStatus === 'rejected';
+    const handleBack = () => {
+        if (router.canGoBack()) router.back();
+        else router.replace('/(tabs)/home');
+    };
 
     if (showStatusOnly) {
         return (
@@ -217,7 +221,9 @@ export default function KycScreen() {
         <SafeAreaView style={styles.screen} edges={['top']}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <View style={styles.headerSpacer} />
+                <Pressable onPress={handleBack} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={22} color="#111827" />
+                </Pressable>
                 <Text style={styles.headerTitle}>KYC Verification</Text>
                 <View style={styles.headerSpacer} />
             </View>
@@ -337,6 +343,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#F1F5F9',
     },
     headerSpacer: { width: 28 },
+    backButton: { width: 28, padding: 3 },
     headerTitle: { color: '#111827', fontSize: 18, fontWeight: '700' },
     content: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 42 },
     subtitle: {
