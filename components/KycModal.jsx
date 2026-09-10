@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
-import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSelector } from 'react-redux';
 
@@ -37,6 +36,7 @@ const statusCopy = {
 export default function KycModal() {
     const pathname = usePathname();
     const bottomSheetRef = useRef(null);
+    const isPresentedRef = useRef(false);
     const snapPoints = useMemo(() => ['64%'], []);
     const {
         isLoggedIn,
@@ -66,9 +66,11 @@ export default function KycModal() {
     const copy = statusCopy[String(kycStatus || '').toLowerCase()] || statusCopy.default;
 
     useEffect(() => {
-        if (isVisible) {
+        if (isVisible && !isPresentedRef.current) {
+            isPresentedRef.current = true;
             bottomSheetRef.current?.present();
-        } else {
+        } else if (!isVisible && isPresentedRef.current) {
+            isPresentedRef.current = false;
             bottomSheetRef.current?.dismiss();
         }
     }, [isVisible]);
@@ -85,9 +87,8 @@ export default function KycModal() {
         []
     );
 
-    // Keep the BottomSheetModal mounted while it is being dismissed. Returning
-    // null here used to clear the ref before the dismiss effect could close the
-    // portal, leaving a stale KYC sheet visible over verified accounts.
+    if (!isVisible) return null;
+
     return (
         <BottomSheetModal
             ref={bottomSheetRef}
@@ -95,12 +96,13 @@ export default function KycModal() {
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
             enablePanDownToClose={false}
+            enableDismissOnClose={false}
             handleComponent={null}
             backgroundStyle={styles.sheetBackground}
         >
             <BottomSheetView style={styles.container}>
                 <View style={[styles.hero, { backgroundColor: copy.color }]}>
-                    <Ionicons name="document-text-outline" size={72} color="#FFFFFF" />
+                    <Image source={require('../assets/images/pana.png')} style={styles.illustration} resizeMode="contain" />
                 </View>
 
                 <Text style={styles.title}>{copy.title}</Text>
@@ -132,16 +134,17 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 230,
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
         overflow: 'hidden',
     },
+    illustration: { width: width * 0.90, height: 280, marginBottom: -75 },
     title: {
         color: '#111827',
         fontSize: 21,
         fontWeight: '700',
-        marginTop: 34,
+        marginTop: 100,
         marginBottom: 10,
         textAlign: 'center',
     },

@@ -1,11 +1,11 @@
-import { Redirect, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchDeveloperKyc } from "../../store/slices/authSlice";
 
 export default function TabsLayout() {
     const dispatch = useDispatch();
-    const { isLoggedIn, isKycCompleted, kycInitialized, kycLoading, kycError } = useSelector((state) => state.auth);
+    const { isLoggedIn, kycInitialized, kycLoading, kycError } = useSelector((state) => state.auth);
 
     // Never classify an account as incomplete while its authoritative KYC
     // record is still loading after login.
@@ -32,10 +32,6 @@ export default function TabsLayout() {
                 </TouchableOpacity>
             </View>
         );
-    }
-
-    if (isLoggedIn && kycInitialized && !isKycCompleted) {
-        return <Redirect href="/(screens)/kyc" />;
     }
 
     return (
