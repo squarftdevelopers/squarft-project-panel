@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import "../global.css";
 import { store } from '../store/store';
-import { hydrateAuthThunk } from '../store/slices/authSlice';
+import { hydrateAuthThunk, fetchDeveloperKyc } from '../store/slices/authSlice';
 
 import PushNotificationRegistrar from "../components/PushNotificationRegistrar";
 
@@ -28,7 +28,11 @@ function AppInit() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        dispatch(hydrateAuthThunk());
+        dispatch(hydrateAuthThunk()).then((result) => {
+            if (result.payload?.token) {
+                dispatch(fetchDeveloperKyc());
+            }
+        });
     }, [dispatch]);
 
     return null;

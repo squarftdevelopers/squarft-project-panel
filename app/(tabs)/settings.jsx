@@ -40,6 +40,7 @@ export default function Settings() {
     const [profile, setProfile] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -70,6 +71,37 @@ export default function Settings() {
                         } catch (error) {
                             console.error("Logout error:", error);
                             Alert.alert("Error", "Failed to log out. Please try again.");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            "Delete Account",
+            "Are you sure you want to delete your account? This action is permanent and cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        setDeletingAccount(true);
+                        try {
+                            await profileService.deleteAccount();
+                            await authService.logout();
+                            dispatch(logoutAction());
+                            dispatch(clearProjects());
+                            dispatch(resetInventory());
+                            dispatch(clearNotifications());
+                            router.replace("/(auth)/login");
+                        } catch (error) {
+                            console.error("Delete account error:", error);
+                            Alert.alert("Delete failed", error?.message || "Failed to delete account. Please try again.");
+                        } finally {
+                            setDeletingAccount(false);
                         }
                     }
                 }
@@ -338,14 +370,55 @@ export default function Settings() {
                     </TouchableOpacity>
                 )}
 
+                {/* Support & Legal Card */}
+                <View className="bg-white rounded-3xl border border-gray-200 p-5 mb-6">
+                    <Text className="text-gray-400 text-[11px] font-lato-bold uppercase tracking-wider mb-2">Support & Legal</Text>
+                    {[
+                        { label: "Terms & Conditions", icon: "file-document-outline" },
+                        { label: "Privacy Policy", icon: "shield-check-outline" },
+                        { label: "Contact Us", icon: "phone-outline" },
+                        { label: "FAQs", icon: "help-circle-outline" },
+                    ].map((item, index) => (
+                        <TouchableOpacity
+                            key={item.label}
+                            onPress={() => router.push({ pathname: "/(screens)/coming-soon", params: { title: item.label } })}
+                            className={`flex-row items-center py-3.5 ${index > 0 ? "border-t border-gray-100" : ""}`}
+                        >
+                            <View className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 items-center justify-center">
+                                <MaterialCommunityIcons name={item.icon} size={18} color="#4A43EC" />
+                            </View>
+                            <Text className="flex-1 ml-3 text-[14px] font-lato-medium text-gray-800">{item.label}</Text>
+                            <Feather name="chevron-right" size={16} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
                 {/* Logout Button - thin border instead of shadow */}
                 <TouchableOpacity
                     onPress={handleLogout}
+                    disabled={deletingAccount}
                     activeOpacity={0.8}
-                    className="bg-white border border-rose-200 rounded-3xl py-4 flex-row items-center justify-center gap-2"
+                    className="bg-white border border-rose-200 rounded-3xl py-4 flex-row items-center justify-center gap-2 mb-3"
                 >
                     <Ionicons name="log-out-outline" size={18} color="#EF4444" />
                     <Text className="text-rose-500 text-[15px] font-lato-bold">Log Out</Text>
+                </TouchableOpacity>
+
+                {/* Delete Account Button */}
+                <TouchableOpacity
+                    onPress={handleDeleteAccount}
+                    disabled={deletingAccount}
+                    activeOpacity={0.8}
+                    className="bg-rose-50 border border-rose-200 rounded-3xl py-4 flex-row items-center justify-center gap-2 mb-8"
+                >
+                    {deletingAccount ? (
+                        <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                        <>
+                            <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                            <Text className="text-rose-600 text-[15px] font-lato-bold">Delete Account</Text>
+                        </>
+                    )}
                 </TouchableOpacity>
             </ScrollView>
         </View>

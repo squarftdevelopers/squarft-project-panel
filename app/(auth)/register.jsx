@@ -326,7 +326,7 @@ export default function Register() {
                         <TouchableOpacity
                             onPress={handleSendOtp}
                             disabled={loading}
-                            className={`bg-[#4A43EC] rounded-2xl py-4 items-center mb-10 shadow-lg shadow-blue-500/30 ${loading ? 'opacity-70' : ''}`}
+                            className={`bg-[#4A43EC] rounded-2xl py-4 items-center mb-6 shadow-lg shadow-blue-500/30 ${loading ? 'opacity-70' : ''}`}
                         >
                             {loading ? (
                                 <ActivityIndicator color="white" />
@@ -334,6 +334,25 @@ export default function Register() {
                                 <Text className="text-white text-[16px] font-lato-bold">Send OTP</Text>
                             )}
                         </TouchableOpacity>
+
+                        <View className="items-center justify-center pt-2 pb-8">
+                            <Text className="text-center text-xs text-gray-400 font-lato leading-5">
+                                By registering, you agree to our{"\n"}
+                                <Text
+                                    onPress={() => router.push({ pathname: "/(screens)/coming-soon", params: { title: "Terms & Conditions" } })}
+                                    className="font-bold text-[#4A43EC]"
+                                >
+                                    Terms & Conditions
+                                </Text>
+                                {" "}and{" "}
+                                <Text
+                                    onPress={() => router.push({ pathname: "/(screens)/coming-soon", params: { title: "Privacy Policy" } })}
+                                    className="font-bold text-[#4A43EC]"
+                                >
+                                    Privacy Policy
+                                </Text>
+                            </Text>
+                        </View>
                     </View>
             </KeyboardAwareScrollView>
         </SafeAreaView>

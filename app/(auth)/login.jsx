@@ -69,7 +69,7 @@ export default function Login() {
                     <AuthHeader
                         title="Login"
                         subtitle="Don't have an account? "
-                        actionLabel="Sign Up"
+                        actionLabel="Register"
                         actionHref="/register"
                     />
 

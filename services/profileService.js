@@ -60,4 +60,16 @@ export const profileService = {
       };
     }
   },
+
+  deleteAccount: async () => {
+    try {
+      const response = await api.delete('/api/v1/profile/me');
+      return response.data;
+    } catch (error) {
+      throw {
+        message: error.response?.data?.message || error.message || 'Unable to delete account',
+        status: error.response?.status,
+      };
+    }
+  },
 };
