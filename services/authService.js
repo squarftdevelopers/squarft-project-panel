@@ -32,7 +32,7 @@ const toAuthError = (error, fallback) => ({
 });
 
 export const authService = {
-  // Send an OTP to a phone number. purpose: 'register' | 'login' | 'reset_password'
+  // Send an OTP to a phone number for registration or login.
   sendOtp: async (phone, purpose) => {
     try {
       const response = await api.post('/auth/send-otp', { phone, purpose, role: ROLE });
@@ -96,20 +96,6 @@ export const authService = {
     } catch (error) {
       console.log(' [AUTH SERVICE] Login error:', error.response?.status, error.response?.data?.message);
       throw toAuthError(error, 'Login failed');
-    }
-  },
-
-  // Set a new password after a reset_password OTP flow
-  resetPassword: async (verifiedToken, newPassword) => {
-    try {
-      const response = await api.post('/auth/reset-password', {
-        verified_token: verifiedToken,
-        new_password: newPassword,
-      });
-      return response.data;
-    } catch (error) {
-      console.log(' [AUTH SERVICE] Reset password error:', error.response?.status, error.response?.data?.message);
-      throw toAuthError(error, 'Failed to reset password');
     }
   },
 

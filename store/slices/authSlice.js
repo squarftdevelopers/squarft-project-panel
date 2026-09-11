@@ -4,6 +4,11 @@ import { authService } from '../../services/authService';
 
 const isApprovedKycStatus = (status) => ['verified', 'approved'].includes(String(status || '').toLowerCase());
 
+export const hydrateAuthThunk = createAsyncThunk('auth/hydrate', async () => ({
+    token: await authService.getToken(),
+    user: await authService.getUserData(),
+}));
+
 export const sendOtpThunk = createAsyncThunk(
     'auth/sendOtp',
     async ({ phone, purpose }, { rejectWithValue }) => {
@@ -44,17 +49,6 @@ export const loginThunk = createAsyncThunk(
             return await authService.login(verifiedToken);
         } catch (error) {
             return rejectWithValue(error.message || 'Login failed');
-        }
-    }
-);
-
-export const resetPasswordThunk = createAsyncThunk(
-    'auth/resetPassword',
-    async ({ verified_token, new_password }, { rejectWithValue }) => {
-        try {
-            return await authService.resetPassword(verified_token, new_password);
-        } catch (error) {
-            return rejectWithValue(error.message || 'Failed to reset password');
         }
     }
 );
@@ -120,6 +114,7 @@ const authSlice = createSlice({
         verifiedToken: null,
         rememberMe: false,
         isLoggedIn: false,
+        authChecked: false,
         isKycCompleted: false,
         kycInitialized: false,
         kyc: null,
@@ -200,6 +195,17 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder
+            .addCase(hydrateAuthThunk.fulfilled, (state, action) => {
+                state.authChecked = true;
+                if (action.payload.token) {
+                    state.token = action.payload.token;
+                    state.user = action.payload.user;
+                    state.isLoggedIn = true;
+                }
+            })
+            .addCase(hydrateAuthThunk.rejected, (state) => {
+                state.authChecked = true;
+            })
             .addCase(sendOtpThunk.pending, (state) => { state.loading = true; state.error = null; })
             .addCase(sendOtpThunk.fulfilled, (state, action) => {
                 state.loading = false;
@@ -250,15 +256,6 @@ const authSlice = createSlice({
                 state.kycInitialized = false;
             })
             .addCase(loginThunk.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
-            .addCase(resetPasswordThunk.pending, (state) => { state.loading = true; state.error = null; })
-            .addCase(resetPasswordThunk.fulfilled, (state) => {
-                state.loading = false;
-                state.verifiedToken = null;
-            })
-            .addCase(resetPasswordThunk.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             })
