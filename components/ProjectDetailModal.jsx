@@ -866,23 +866,7 @@ export default function ProjectDetailModal({ visible, onClose, project, variant,
                                             <Text className={`text-[13px] font-lato-bold ${tone.amount}`}>{milestone.amount}</Text>
                                             <Text className="mt-0.5 text-[9px] font-lato text-[#52607A]">{milestone.detail}</Text>
 
-                                            {milestone.remainingAmount > 0 ? (
-                                                <TouchableOpacity
-                                                    activeOpacity={0.9}
-                                                    onPress={() => openCollectForm(index)}
-                                                    className="mt-2 self-start flex-row items-center gap-1.5 rounded-full bg-[#4A43EC] px-3 py-1.5"
-                                                >
-                                                    <MaterialCommunityIcons name="cash-plus" size={12} color="#fff" />
-                                                    <Text className="text-[10px] font-lato-bold text-white">Collect</Text>
-                                                </TouchableOpacity>
-                                            ) : (
-                                                <View className="mt-2 self-start flex-row items-center gap-1.5 rounded-full bg-[#E6FBF3] px-3 py-1.5">
-                                                    <MaterialCommunityIcons name="check-circle-outline" size={12} color="#10B981" />
-                                                    <Text className="text-[10px] font-lato-bold text-[#10B981]">Paid</Text>
-                                                </View>
-                                            )}
-
-                                            {!isLast ? <View className="mt-1.5 h-px bg-[#DDE6DD]" /> : null}
+                                            <Text className="mt-2 text-[11px] text-[#64748B]">{milestone.remainingAmount > 0 ? 'Awaiting payment confirmation by admin' : 'Paid'}</Text>
                                         </View>
                                     );
                                 })}

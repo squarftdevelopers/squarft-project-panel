@@ -545,9 +545,9 @@ export default function Home() {
             setVisitsLoading(true);
             console.log('🔵 [HOME] Fetching visit data for project:', projectId);
 
-            const [statsResponse, upcomingResponse] = await Promise.all([
+            const [statsResponse, visitsResponse] = await Promise.all([
                 visitService.getVisitStats(projectId),
-                visitService.getUpcomingVisits(projectId, 10)
+                visitService.listVisits(projectId, { status: 'all', page: 1, limit: 50 })
             ]);
 
             if (statsResponse.success) {
@@ -555,9 +555,9 @@ export default function Home() {
                 console.log('✅ [HOME] Visit stats loaded:', statsResponse.data);
             }
 
-            if (upcomingResponse.success) {
-                setUpcomingVisits(Array.isArray(upcomingResponse.data) ? upcomingResponse.data : []);
-                console.log('✅ [HOME] Upcoming visits loaded:', upcomingResponse.data?.length);
+            if (visitsResponse.success) {
+                setUpcomingVisits(Array.isArray(visitsResponse.data) ? visitsResponse.data : []);
+                console.log('✅ [HOME] Project visits loaded:', visitsResponse.data?.length);
             }
         } catch (error) {
             console.log('❌ [HOME] Failed to fetch visit data:', error);
@@ -1918,9 +1918,9 @@ export default function Home() {
                                     )}
                                 </View>
 
-                                {/* Upcoming Visits */}
+                                {/* Project visits, including completed visits and their result. */}
                                 <View className="flex-row items-center justify-between mb-3">
-                                    <Text className="text-[16px] font-lato-bold text-[#1F2937]">Upcoming Visits</Text>
+                                    <Text className="text-[16px] font-lato-bold text-[#1F2937]">Project Visits</Text>
                                     {upcomingVisits.length > 0 && (
                                         <TouchableOpacity>
                                             <Text className="text-[12px] font-lato-bold text-[#4A43EC]">See All</Text>
@@ -2033,7 +2033,7 @@ export default function Home() {
                                     ) : (
                                         <View className="bg-white rounded-[16px] border border-gray-100 py-8 px-5">
                                             <Ionicons name="calendar-outline" size={32} color="#D1D5DB" style={{ alignSelf: 'center', marginBottom: 8 }} />
-                                            <Text className="text-gray-400 font-lato text-center">No upcoming visits scheduled</Text>
+                                            <Text className="text-gray-400 font-lato text-center">No visits scheduled for this project</Text>
                                         </View>
                                     )}
                                 </View>
@@ -2111,6 +2111,7 @@ export default function Home() {
                                         key={dealId || Math.random().toString()}
                                         activeOpacity={0.9}
                                         onPress={async () => {
+                                            if (deal.canonical_deal_id) { router.push({ pathname: "/(screens)/project-deal", params: { id: deal.canonical_deal_id } }); return; }
                                             const base = {
                                                 id: dealId,
                                                 deal_id: dealId,
