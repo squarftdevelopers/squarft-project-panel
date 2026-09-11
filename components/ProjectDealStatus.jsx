@@ -23,7 +23,18 @@ export default function ProjectDealStatus() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
   return <SafeAreaView style={{flex:1,backgroundColor:'#F8FAFC'}}>
     <TouchableOpacity onPress={() => router.back()} style={{padding:20,flexDirection:'row',gap:14,alignItems:'center'}}><Ionicons name="arrow-back" size={24}/><Text style={{fontSize:20,fontWeight:'700'}}>Deal details</Text></TouchableOpacity>
-    <ScrollView contentContainerStyle={{padding:20,gap:16}} refreshControl={<RefreshControl refreshing={loading} onRefresh={load}/>}>
+    <ScrollView
+      contentContainerStyle={{padding:20,gap:16}}
+      alwaysBounceVertical={true}
+      refreshControl={
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={load}
+          colors={["#4A43EC"]}
+          tintColor="#4A43EC"
+        />
+      }
+    >
       {loading && !deal && <ActivityIndicator color="#4A43EC"/>}
       {!!error && <Text style={{color:'#B91C1C'}}>{error}</Text>}
       {deal && <>

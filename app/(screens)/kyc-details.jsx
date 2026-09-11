@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
     Pressable,
+    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -47,6 +48,18 @@ const InfoRow = ({ label, value }) => (
 export default function KycDetailsScreen() {
     const dispatch = useDispatch();
     const { kyc, kycStatus, kycLoading } = useSelector((state) => state.auth);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await dispatch(fetchDeveloperKyc()).unwrap();
+        } catch (e) {
+            // ignore
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         dispatch(fetchDeveloperKyc());
@@ -72,15 +85,38 @@ export default function KycDetailsScreen() {
                     <ActivityIndicator size="large" color="#4A43EC" />
                 </View>
             ) : !kyc ? (
-                <View style={styles.emptyContainer}>
+                <ScrollView
+                    contentContainerStyle={styles.emptyContainer}
+                    alwaysBounceVertical={true}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["#4A43EC"]}
+                            tintColor="#4A43EC"
+                        />
+                    }
+                >
                     <MaterialCommunityIcons name="file-document-outline" size={40} color="#9CA3AF" />
                     <Text style={styles.emptyText}>No KYC submission found yet.</Text>
                     <Pressable style={styles.primaryButton} onPress={() => router.push('/(screens)/kyc')}>
                         <Text style={styles.primaryButtonText}>Complete KYC</Text>
                     </Pressable>
-                </View>
+                </ScrollView>
             ) : (
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    contentContainerStyle={styles.content}
+                    showsVerticalScrollIndicator={false}
+                    alwaysBounceVertical={true}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["#4A43EC"]}
+                            tintColor="#4A43EC"
+                        />
+                    }
+                >
                     <View style={[styles.statusBanner, { backgroundColor: meta.bg }]}>
                         <MaterialCommunityIcons name={meta.icon} size={22} color={meta.color} />
                         <Text style={[styles.statusTitle, { color: meta.color }]}>{meta.title}</Text>
@@ -132,7 +168,7 @@ const styles = StyleSheet.create({
     headerButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: '#111827', fontSize: 17, fontWeight: '700' },
     loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 },
+    emptyContainer: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 },
     emptyText: { color: '#6B7280', fontSize: 14, marginTop: 10, marginBottom: 20, textAlign: 'center' },
     content: { padding: 20, paddingBottom: 40 },
     statusBanner: {

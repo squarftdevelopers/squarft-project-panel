@@ -1,4 +1,5 @@
-import { View, Text, Pressable, StatusBar, Platform, ScrollView } from "react-native";
+import { useState } from "react";
+import { View, Text, Pressable, StatusBar, Platform, ScrollView, RefreshControl } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -42,6 +43,14 @@ export default function Notifications() {
     const dispatch = useDispatch();
     const notifications = useSelector((state) => state.notifications?.list || []);
     const unreadCount = notifications.filter(item => !item.watched).length;
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => {
+            setRefreshing(false);
+        }, 600);
+    };
 
     const openNotification = (item) => {
         dispatch(markAsWatched(item.id));
@@ -77,7 +86,18 @@ export default function Notifications() {
             </View>
 
             {notifications.length === 0 ? (
-                <View className="flex-1 items-center justify-center px-10 -mt-20">
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40, marginTop: -80 }}
+                    alwaysBounceVertical={true}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["#4A43EC"]}
+                            tintColor="#4A43EC"
+                        />
+                    }
+                >
                     <View className="w-28 h-28 rounded-full bg-[#F4F7FF] items-center justify-center">
                         <Ionicons name="mail-open-outline" size={42} color="#4A43EC" />
                     </View>
@@ -87,10 +107,19 @@ export default function Notifications() {
                     <Text className="text-[12px] font-lato text-[#9CA3AF] mt-2.5 text-center leading-5">
                         Project, inventory, visit, and deal alerts will appear here when available.
                     </Text>
-                </View>
+                </ScrollView>
             ) : (
                 <ScrollView
                     showsVerticalScrollIndicator={false}
+                    alwaysBounceVertical={true}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["#4A43EC"]}
+                            tintColor="#4A43EC"
+                        />
+                    }
                     contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 100 }}
                 >
                     {notifications.map((item) => (

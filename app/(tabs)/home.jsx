@@ -46,6 +46,73 @@ const INVENTORY_TABS = [
 ];
 const STATUS_OPTIONS = ["Available", "Booked", "Sold"];
 
+const PIPELINE_STAGE_META = {
+    new_lead: {
+        label: "Officer Assigned",
+        sublabel: "Pending field officer acceptance & initial contact",
+        badgeBg: "#EFF6FF",
+        badgeText: "#1D4ED8",
+        badgeBorder: "#BFDBFE",
+        icon: "time-outline",
+    },
+    first_contact: {
+        label: "Contact Initiated",
+        sublabel: "Field officer contacted for project verification",
+        badgeBg: "#EEF2FF",
+        badgeText: "#4338CA",
+        badgeBorder: "#C7D2FE",
+        icon: "call-outline",
+    },
+    follow_up: {
+        label: "Officer Follow-up",
+        sublabel: "Follow-up and site verification in progress",
+        badgeBg: "#FFFBEB",
+        badgeText: "#B45309",
+        badgeBorder: "#FDE68A",
+        icon: "refresh-outline",
+    },
+    meeting_scheduled: {
+        label: "Meeting Completed",
+        sublabel: "Field officer completed onboarding meeting",
+        badgeBg: "#FAF5FF",
+        badgeText: "#7E22CE",
+        badgeBorder: "#E9D5FF",
+        icon: "calendar-outline",
+    },
+    interested: {
+        label: "Under Admin Review",
+        sublabel: "Admin reviewing field officer verification report",
+        badgeBg: "#ECFEFF",
+        badgeText: "#0E7490",
+        badgeBorder: "#A5F3FC",
+        icon: "shield-outline",
+    },
+    in_review: {
+        label: "Final Verification",
+        sublabel: "Pending Admin approval to make project live",
+        badgeBg: "#FFF7ED",
+        badgeText: "#C2410C",
+        badgeBorder: "#FFEDD5",
+        icon: "document-text-outline",
+    },
+    project_live: {
+        label: "Live & Approved",
+        sublabel: "Active and listed on user app & inventory",
+        badgeBg: "#ECFDF5",
+        badgeText: "#047857",
+        badgeBorder: "#A7F3D0",
+        icon: "checkmark-circle",
+    },
+    rejected: {
+        label: "Project Rejected",
+        sublabel: "Project was not approved by administration",
+        badgeBg: "#FEF2F2",
+        badgeText: "#B91C1C",
+        badgeBorder: "#FECACA",
+        icon: "close-circle",
+    },
+};
+
 export default function Home() {
     const router = useRouter();
     const dispatch = useDispatch();
@@ -1127,7 +1194,15 @@ export default function Home() {
     // (projectsList, from the API). projectsData (the Redux `projects` slice) is
     // never reset on logout, so falling back to it here could show a previous
     // account's projects to a developer who genuinely has none.
-    const projectOptions = projectsList.map(p => ({ id: p.id, title: p.name, location: p.city }));
+    const projectOptions = projectsList.map(p => ({
+        id: p.id,
+        title: p.name,
+        location: p.city,
+        status: p.status,
+        approvalStatus: p.overall_approval_status,
+        leadStage: p.lead_stage,
+        onboardingProgress: p.onboarding_progress,
+    }));
     const hasProjects = projectOptions.length > 0;
 
     // Merge API overview into the shape the UI expects
@@ -1137,6 +1212,7 @@ export default function Home() {
     const apiUserProfile = overviewData?.user_profile;
     const apiMedia = overviewData?.media || [];
     const apiConfigurations = overviewData?.configurations || [];
+    const apiPipeline = overviewData?.pipeline;
 
     const formatAmount = (amount) => {
         if (!amount) return "₹0";
@@ -1373,6 +1449,8 @@ export default function Home() {
                         <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             {projectOptions.map((project) => {
                                 const isSelected = project.id === selectedProjectId;
+                                const stageKey = project.leadStage || (project.status === "active" ? "project_live" : "new_lead");
+                                const meta = PIPELINE_STAGE_META[stageKey] || PIPELINE_STAGE_META.new_lead;
 
                                 return (
                                     <TouchableOpacity
@@ -1381,9 +1459,25 @@ export default function Home() {
                                         onPress={() => handleProjectSelect(project.id)}
                                         className={`px-3 py-3 ${isSelected ? "bg-[#F4F3FF]" : "bg-white"}`}
                                     >
-                                        <Text className={`font-lato-bold text-[12px] ${isSelected ? "text-[#4A43EC]" : "text-[#1A1A1A]"}`} numberOfLines={1}>
-                                            {project.title}
-                                        </Text>
+                                        <View className="flex-row items-center justify-between">
+                                            <Text className={`font-lato-bold text-[12px] flex-1 mr-2 ${isSelected ? "text-[#4A43EC]" : "text-[#1A1A1A]"}`} numberOfLines={1}>
+                                                {project.title}
+                                            </Text>
+                                            <View
+                                                style={{
+                                                    backgroundColor: meta.badgeBg,
+                                                    borderColor: meta.badgeBorder,
+                                                    borderWidth: 1,
+                                                    paddingHorizontal: 6,
+                                                    paddingVertical: 1.5,
+                                                    borderRadius: 99,
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: 9, fontFamily: "Lato-Bold", color: meta.badgeText, fontWeight: "700" }}>
+                                                    {meta.label}
+                                                </Text>
+                                            </View>
+                                        </View>
                                         <Text className="mt-0.5 text-[10px] font-lato text-[#8E9AAF]" numberOfLines={1}>
                                             {project.location || "Location pending"}
                                         </Text>
@@ -1661,6 +1755,7 @@ export default function Home() {
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
+                alwaysBounceVertical={true}
                 contentContainerStyle={{ paddingBottom: 120 }}
                 refreshControl={
                     (activeTab === 'Overview' || activeTab === 'Inventory') ? (
@@ -1795,6 +1890,52 @@ export default function Home() {
                                     </View>
                                     <Text className="text-gray-400 text-[13px] font-lato mb-2.5">{displayProjectLocation}</Text>
 
+                                    {/* Project Approval & Pipeline Status */}
+                                    {(() => {
+                                        const currentProject = projectOptions.find(p => p.id === selectedProjectId);
+                                        const stageKey = apiPipeline?.stage || currentProject?.leadStage || (currentProject?.status === 'active' ? 'project_live' : 'new_lead');
+                                        const meta = PIPELINE_STAGE_META[stageKey] || PIPELINE_STAGE_META.new_lead;
+                                        const progress = apiPipeline?.onboarding_progress !== undefined ? apiPipeline.onboarding_progress : (currentProject?.onboardingProgress !== undefined ? currentProject.onboardingProgress : (stageKey === 'project_live' ? 100 : 15));
+
+                                        return (
+                                            <View
+                                                style={{
+                                                    backgroundColor: meta.badgeBg,
+                                                    borderColor: meta.badgeBorder,
+                                                    borderWidth: 1,
+                                                    borderRadius: 12,
+                                                    padding: 10,
+                                                    marginBottom: 12,
+                                                }}
+                                            >
+                                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                                    <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
+                                                        <Ionicons name={meta.icon} size={15} color={meta.badgeText} style={{ marginRight: 6 }} />
+                                                        <Text style={{ fontSize: 12, fontFamily: "Lato-Bold", color: meta.badgeText, fontWeight: "700" }}>
+                                                            {meta.label}
+                                                        </Text>
+                                                    </View>
+                                                    <View style={{ backgroundColor: "rgba(255,255,255,0.7)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99 }}>
+                                                        <Text style={{ fontSize: 10, fontFamily: "Lato-Bold", color: meta.badgeText, fontWeight: "700" }}>
+                                                            {progress}%
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <Text style={{ fontSize: 10, fontFamily: "Lato", color: "#64748B", marginTop: 3 }}>
+                                                    {meta.sublabel}
+                                                </Text>
+                                                {apiPipeline?.assigned_officer?.name ? (
+                                                    <Text style={{ fontSize: 10, fontFamily: "Lato", color: "#334155", marginTop: 4 }}>
+                                                        Assigned Officer: {apiPipeline.assigned_officer.name} {apiPipeline.assigned_officer.phone ? `(${apiPipeline.assigned_officer.phone})` : ""}
+                                                    </Text>
+                                                ) : null}
+                                                <View style={{ height: 4, backgroundColor: "rgba(0,0,0,0.06)", borderRadius: 2, marginTop: 7, overflow: "hidden" }}>
+                                                    <View style={{ height: "100%", width: `${Math.max(5, progress)}%`, backgroundColor: meta.badgeText, borderRadius: 2 }} />
+                                                </View>
+                                            </View>
+                                        );
+                                    })()}
+
                                     <View className="border-t border-dashed border-gray-200 pt-2.5 mb-2.5">
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                             <View className="flex-row">
@@ -1869,6 +2010,7 @@ export default function Home() {
                 ) : activeTab === "Visits" ? (
                     <ScrollView
                         className="px-5 pt-5"
+                        alwaysBounceVertical={true}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}
@@ -2043,6 +2185,7 @@ export default function Home() {
                 ) : activeTab === "Deals" ? (
                     <ScrollView
                         className="px-5 pt-5 pb-4"
+                        alwaysBounceVertical={true}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}

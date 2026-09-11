@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Text, View, TouchableOpacity, ScrollView, Alert, StatusBar, ActivityIndicator } from "react-native";
+import { Text, View, TouchableOpacity, ScrollView, Alert, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
@@ -41,6 +41,22 @@ export default function Settings() {
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [deletingAccount, setDeletingAccount] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            const data = await profileService.getMyProfile();
+            setProfile(data);
+            if (data?.user) {
+                dispatch(setUser({ ...user, ...data.user }));
+            }
+        } catch (error) {
+            console.log("[SETTINGS] Refresh profile failed:", error?.message);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -245,6 +261,15 @@ export default function Settings() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 }}
                 className="flex-1"
+                alwaysBounceVertical={true}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={["#4A43EC"]}
+                        tintColor="#4A43EC"
+                    />
+                }
             >
                 {loadingProfile && (
                     <View className="items-center py-4">

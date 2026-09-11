@@ -6,6 +6,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
+    RefreshControl,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -97,6 +98,18 @@ export default function KycScreen() {
     const [aadharNumber, setAadharNumber] = useState('');
     const [panNumber, setPanNumber] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await dispatch(fetchDeveloperKyc()).unwrap();
+        } catch (e) {
+            // ignore
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         dispatch(fetchDeveloperKyc());
@@ -194,25 +207,38 @@ export default function KycScreen() {
 
     if (showStatusOnly) {
         return (
-            <SafeAreaView style={styles.statusContainer}>
-                <StatusBar barStyle="dark-content" />
-                <View style={[styles.statusIcon, { backgroundColor: meta.bg }]}>
-                    <MaterialCommunityIcons name={meta.icon} size={54} color={meta.color} />
-                </View>
-                <Text style={styles.statusTitle}>{meta.title}</Text>
-                <Text style={styles.statusMessage}>{meta.message}</Text>
-                <Pressable
-                    style={[styles.primaryButton, { backgroundColor: meta.color }]}
-                    onPress={() => {
-                        if (isApprovedStatus(currentStatus)) {
-                            router.replace('/(tabs)/home');
-                        } else {
-                            dispatch(fetchDeveloperKyc());
-                        }
-                    }}
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+                <ScrollView
+                    contentContainerStyle={[styles.statusContainer, { flexGrow: 1 }]}
+                    alwaysBounceVertical={true}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["#4A43EC"]}
+                            tintColor="#4A43EC"
+                        />
+                    }
                 >
-                    {kycLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>{meta.action}</Text>}
-                </Pressable>
+                    <StatusBar barStyle="dark-content" />
+                    <View style={[styles.statusIcon, { backgroundColor: meta.bg }]}>
+                        <MaterialCommunityIcons name={meta.icon} size={54} color={meta.color} />
+                    </View>
+                    <Text style={styles.statusTitle}>{meta.title}</Text>
+                    <Text style={styles.statusMessage}>{meta.message}</Text>
+                    <Pressable
+                        style={[styles.primaryButton, { backgroundColor: meta.color }]}
+                        onPress={() => {
+                            if (isApprovedStatus(currentStatus)) {
+                                router.replace('/(tabs)/home');
+                            } else {
+                                dispatch(fetchDeveloperKyc());
+                            }
+                        }}
+                    >
+                        {kycLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>{meta.action}</Text>}
+                    </Pressable>
+                </ScrollView>
             </SafeAreaView>
         );
     }
@@ -236,6 +262,15 @@ export default function KycScreen() {
                     contentContainerStyle={styles.content}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    alwaysBounceVertical={true}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={["#4A43EC"]}
+                            tintColor="#4A43EC"
+                        />
+                    }
                 >
                     {isRejected && (
                         <View style={styles.rejectedBanner}>
