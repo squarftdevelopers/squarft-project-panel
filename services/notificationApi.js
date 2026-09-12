@@ -34,5 +34,14 @@ export const notificationApi = {
         api.post(PUSH_TOKEN_ENDPOINT, buildDevicePayload({ expoPushToken, devicePushToken, userId })),
 
     unregisterDevice: ({ expoPushToken, userId }) =>
-        api.post(PUSH_TOKEN_UNREGISTER_ENDPOINT, buildDevicePayload({ expoPushToken, userId })),
+        api.delete(PUSH_TOKEN_UNREGISTER_ENDPOINT, { data: buildDevicePayload({ expoPushToken, userId }) }),
+
+    list: (page = 1, limit = 20) =>
+        api.get(`/api/v1/project-panel/notifications?page=${page}&limit=${limit}`),
+
+    markRead: (id) =>
+        api.patch(`/api/v1/project-panel/notifications/${encodeURIComponent(id)}/read`),
+
+    markAllRead: () =>
+        api.patch("/api/v1/project-panel/notifications/read-all"),
 };
