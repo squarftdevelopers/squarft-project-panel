@@ -14,7 +14,7 @@ if (!googleMapsApiKey) {
 }
 
 export default {
-  name: 'squarft-project-panel',
+  name: 'SquarFT Project Panel',
   slug: 'squarft-project-panel',
   version: '1.0.0',
   orientation: 'portrait',
@@ -25,10 +25,11 @@ export default {
 
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
+  owner: 'squarft',
 
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.kartik2611mishra.squarftprojectpanel',
+    bundleIdentifier: 'com.squarft.projectpanel',
 
     config: {
       googleMapsApiKey,
@@ -40,7 +41,7 @@ export default {
   },
 
   android: {
-    package: 'com.kartik2611mishra.squarftprojectpanel',
+    package: 'com.squarft.projectpanel',
 
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
