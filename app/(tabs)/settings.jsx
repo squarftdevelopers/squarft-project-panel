@@ -399,14 +399,14 @@ export default function Settings() {
                 <View className="bg-white rounded-3xl border border-gray-200 p-5 mb-6">
                     <Text className="text-gray-400 text-[11px] font-lato-bold uppercase tracking-wider mb-2">Support & Legal</Text>
                     {[
-                        { label: "Terms & Conditions", icon: "file-document-outline" },
-                        { label: "Privacy Policy", icon: "shield-check-outline" },
-                        { label: "Contact Us", icon: "phone-outline" },
-                        { label: "FAQs", icon: "help-circle-outline" },
+                        { label: "Terms & Conditions", icon: "file-document-outline", route: "/(screens)/terms-and-conditions" },
+                        { label: "Privacy Policy", icon: "shield-check-outline", route: "/(screens)/privacy-policy" },
+                        { label: "Contact Us", icon: "phone-outline", route: "/(screens)/contact-us" },
+                        { label: "FAQs", icon: "help-circle-outline", route: "/(screens)/faqs" },
                     ].map((item, index) => (
                         <TouchableOpacity
                             key={item.label}
-                            onPress={() => router.push({ pathname: "/(screens)/coming-soon", params: { title: item.label } })}
+                            onPress={() => router.push(item.route)}
                             className={`flex-row items-center py-3.5 ${index > 0 ? "border-t border-gray-100" : ""}`}
                         >
                             <View className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 items-center justify-center">
