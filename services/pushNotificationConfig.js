@@ -1,6 +1,6 @@
 export const PUSH_NOTIFICATION_APP_KEY = "project_panel_app";
 export const PUSH_NOTIFICATION_ANDROID_CHANNEL_ID = "project-panel-alerts";
-export const PUSH_NOTIFICATION_ANDROID_PACKAGE = "com.kartik2611mishra.squarftprojectpanel";
+export const PUSH_NOTIFICATION_ANDROID_PACKAGE = "com.squarft.projectpanel";
 export const PUSH_NOTIFICATION_URL_SCHEME = "squarftprojectpanel";
 
 export const PUSH_TOKEN_ENDPOINT =

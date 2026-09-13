@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { Provider, useDispatch } from 'react-redux';
@@ -58,6 +59,7 @@ export default function RootLayout() {
             <Provider store={store}>
                 <BottomSheetModalProvider>
                     <SafeAreaProvider>
+                        <StatusBar style="dark" backgroundColor="transparent" translucent={true} />
                         <AppInit />
                         <PushNotificationRegistrar />
                         <Stack>

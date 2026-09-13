@@ -25,7 +25,7 @@ export default {
 
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
-  owner: 'squarft',
+  owner: 'squarft-team',
 
   ios: {
     supportsTablet: true,
@@ -135,19 +135,19 @@ export default {
   extra: {
     router: {},
 
-    eas: {
-      projectId: '58405e4c-4b9f-47cc-8970-eddf4bd89648',
+    "eas": {
+      "projectId": "d658f5e1-f76c-46a8-98d5-ce9cb73f0a38"
     },
 
     googleMapsApiKey,
   },
 
   updates: {
-    url: 'https://u.expo.dev/58405e4c-4b9f-47cc-8970-eddf4bd89648',
+    url: 'https://u.expo.dev/d658f5e1-f76c-46a8-98d5-ce9cb73f0a38',
   },
 
   runtimeVersion: {
     policy: 'appVersion',
   },
-  owner: 'squarft',
+  owner: 'squarft-team',
 };
