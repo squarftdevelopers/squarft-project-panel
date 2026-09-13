@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Location from "expo-location";
 import {
     setOtpDigit,
     clearOtp,
@@ -33,8 +34,6 @@ export default function OtpVerification() {
         companyName,
         companyType,
         reraNumber,
-        location,
-        branchId,
         loading,
         error,
     } = useSelector((state) => state.auth);
@@ -92,13 +91,22 @@ export default function OtpVerification() {
             if (loginThunk.fulfilled.match(loginResult)) {
                 dispatch(clearOtp());
                 dispatch(setLoggedIn(true));
-                // isKycCompleted defaults to false and (tabs)/_layout.jsx hard-redirects
-                // to /kyc whenever it's false - without this, that redirect fired on
-                // every single login (even for already-approved developers) because
-                // nothing had fetched their real KYC status yet at that point. Wait for
-                // it here so the redirect gate sees accurate data before it evaluates.
-                await dispatch(fetchDeveloperKyc());
-                router.replace("/(tabs)/home");
+
+                const userObj = loginResult.payload?.user;
+                let hasPermission = false;
+                try {
+                    const perm = await Location.getForegroundPermissionsAsync();
+                    hasPermission = perm.status === 'granted';
+                } catch {
+                    hasPermission = false;
+                }
+
+                if (userObj?.branch_id && hasPermission) {
+                    await dispatch(fetchDeveloperKyc());
+                    router.replace("/(tabs)/home");
+                } else {
+                    router.replace("/(auth)/location-permission");
+                }
             }
             return;
         }
@@ -111,16 +119,14 @@ export default function OtpVerification() {
             company_name: companyName,
             company_type: companyType,
             rera_number: reraNumber,
-            location,
-            branch_id: branchId,
         }));
 
         if (registerThunk.fulfilled.match(registerResult)) {
             dispatch(clearOtp());
             dispatch(setLoggedIn(true));
-            router.replace("/(tabs)/home");
+            router.replace("/(auth)/location-permission");
         }
-    }, [otp, otpToken, otpFlow, firstName, lastName, companyName, companyType, reraNumber, location, branchId, dispatch]);
+    }, [otp, otpToken, otpFlow, firstName, lastName, companyName, companyType, reraNumber, dispatch]);
 
     // Auto-submit once all 6 digits are present (covers paste + OS autofill).
     useEffect(() => {

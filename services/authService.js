@@ -140,4 +140,18 @@ export const authService = {
       return false;
     }
   },
+
+  // Update stored user data partially
+  updateUserData: async (partialUser) => {
+    try {
+      const current = await AsyncStorage.getItem('userData');
+      const parsed = current ? JSON.parse(current) : {};
+      const updated = { ...parsed, ...partialUser };
+      await AsyncStorage.setItem('userData', JSON.stringify(updated));
+      return updated;
+    } catch (error) {
+      console.log('⚠️ [AUTH SERVICE] Update user data error:', error.message);
+      return null;
+    }
+  },
 };

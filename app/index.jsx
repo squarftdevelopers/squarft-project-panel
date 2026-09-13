@@ -4,13 +4,19 @@ import { useSelector } from "react-redux";
 
 export default function Index() {
     const router = useRouter();
-    const { authChecked, isLoggedIn } = useSelector((state) => state.auth);
+    const { authChecked, isLoggedIn, user } = useSelector((state) => state.auth);
 
     useEffect(() => {
         if (authChecked) {
-            router.replace(isLoggedIn ? "/(tabs)/home" : "/(auth)/onboarding1");
+            if (!isLoggedIn) {
+                router.replace("/(auth)/onboarding1");
+            } else if (!user?.branch_id) {
+                router.replace("/(auth)/location-permission");
+            } else {
+                router.replace("/(tabs)/home");
+            }
         }
-    }, [authChecked, isLoggedIn, router]);
+    }, [authChecked, isLoggedIn, user, router]);
 
     return null;
 }

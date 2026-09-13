@@ -30,7 +30,7 @@ function AppInit() {
 
     useEffect(() => {
         dispatch(hydrateAuthThunk()).then((result) => {
-            if (result.payload?.token) {
+            if (result.payload?.token && result.payload?.user?.branch_id) {
                 dispatch(fetchDeveloperKyc());
             }
         });

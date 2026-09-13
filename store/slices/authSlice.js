@@ -1,8 +1,53 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { kycService } from '../../services/kycService';
 import { authService } from '../../services/authService';
+import { branchService } from '../../services/branchService';
 
 const isApprovedKycStatus = (status) => ['verified', 'approved'].includes(String(status || '').toLowerCase());
+
+export const detectAndAssignBranchThunk = createAsyncThunk(
+    'auth/detectAndAssignBranch',
+    async ({ latitude, longitude, clientCity, clientState, locationAddress }, { rejectWithValue }) => {
+        try {
+            const data = await branchService.detectAndAssignBranch({
+                latitude,
+                longitude,
+                clientCity,
+                clientState,
+            });
+            const effectiveLocation = locationAddress || data?.formattedAddress || data?.detectedCity || data?.branch?.city;
+            if (data?.available && data?.branch) {
+                await authService.updateUserData({
+                    branch_id: data.branch.id,
+                    branch_name: data.branch.name,
+                    ...(effectiveLocation ? { location: effectiveLocation } : {}),
+                });
+            }
+            return { ...data, effectiveLocation };
+        } catch (error) {
+            return rejectWithValue(error.message || 'Unable to detect nearest branch');
+        }
+    }
+);
+
+export const assignBranchThunk = createAsyncThunk(
+    'auth/assignBranch',
+    async ({ branchId, branchName, location }, { rejectWithValue }) => {
+        try {
+            const data = await branchService.assignBranch({ branchId, location });
+            if (data?.branch) {
+                await authService.updateUserData({
+                    branch_id: data.branch.id,
+                    branch_name: data.branch.name || branchName,
+                    ...(location ? { location } : {}),
+                });
+            }
+            return { ...data, branchName: branchName || data.branch?.name, location };
+        } catch (error) {
+            return rejectWithValue(error.message || 'Unable to assign branch');
+        }
+    }
+);
 
 export const hydrateAuthThunk = createAsyncThunk('auth/hydrate', async () => ({
     token: await authService.getToken(),
@@ -139,6 +184,9 @@ const authSlice = createSlice({
         setBranch: (state, action) => {
             state.branchId = action.payload.id;
             state.branchName = action.payload.name;
+            if (state.user) {
+                state.user.branch_id = action.payload.id;
+            }
         },
         setOtpDigit: (state, action) => {
             const { index, value } = action.payload;
@@ -200,6 +248,9 @@ const authSlice = createSlice({
                 if (action.payload.token) {
                     state.token = action.payload.token;
                     state.user = action.payload.user;
+                    state.location = action.payload.user?.location || state.location;
+                    state.branchId = action.payload.user?.branch_id || state.branchId;
+                    state.branchName = action.payload.user?.branch_name || state.branchName;
                     state.isLoggedIn = true;
                 }
             })
@@ -229,6 +280,8 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.token = action.payload.token;
                 state.user = action.payload.user || state.user;
+                state.branchId = action.payload.user?.branch_id || '';
+                state.branchName = action.payload.user?.branch_name || '';
                 state.isLoggedIn = true;
                 // A brand-new account can never already have KYC completed -
                 // force these back to their true defaults rather than leaving
@@ -252,10 +305,61 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.token = action.payload.token;
                 state.user = action.payload.user || state.user;
+                state.location = action.payload.user?.location || state.location;
+                state.branchId = action.payload.user?.branch_id || state.branchId;
+                state.branchName = action.payload.user?.branch_name || state.branchName;
                 state.isLoggedIn = true;
                 state.kycInitialized = false;
             })
             .addCase(loginThunk.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            .addCase(detectAndAssignBranchThunk.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(detectAndAssignBranchThunk.fulfilled, (state, action) => {
+                state.loading = false;
+                if (action.payload?.available && action.payload?.branch) {
+                    state.branchId = action.payload.branch.id;
+                    state.branchName = action.payload.branch.name;
+                    if (action.payload.effectiveLocation) {
+                        state.location = action.payload.effectiveLocation;
+                    }
+                    if (state.user) {
+                        state.user.branch_id = action.payload.branch.id;
+                        if (action.payload.effectiveLocation) {
+                            state.user.location = action.payload.effectiveLocation;
+                        }
+                    }
+                }
+            })
+            .addCase(detectAndAssignBranchThunk.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            .addCase(assignBranchThunk.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(assignBranchThunk.fulfilled, (state, action) => {
+                state.loading = false;
+                if (action.payload?.branch) {
+                    state.branchId = action.payload.branch.id;
+                    state.branchName = action.payload.branch.name || action.payload.branchName;
+                    if (action.payload.location) {
+                        state.location = action.payload.location;
+                    }
+                    if (state.user) {
+                        state.user.branch_id = action.payload.branch.id;
+                        if (action.payload.location) {
+                            state.user.location = action.payload.location;
+                        }
+                    }
+                }
+            })
+            .addCase(assignBranchThunk.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             })

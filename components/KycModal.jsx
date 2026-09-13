@@ -45,6 +45,8 @@ export default function KycModal() {
         kycLoading,
         kycError,
         kycStatus,
+        user,
+        branchId,
     } = useSelector((state) => state.auth);
     const isAuthPath =
         pathname === '/' ||
@@ -52,10 +54,14 @@ export default function KycModal() {
         pathname.includes('onboarding') ||
         pathname.includes('login') ||
         pathname.includes('register') ||
-        pathname.includes('otp-verification');
+        pathname.includes('otp-verification') ||
+        pathname.includes('location-permission');
+
+    const hasAssignedBranch = Boolean(user?.branch_id || branchId);
 
     const isVisible = Boolean(
         isLoggedIn &&
+        hasAssignedBranch &&
         kycInitialized &&
         !kycLoading &&
         !kycError &&
