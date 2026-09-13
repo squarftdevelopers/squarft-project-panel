@@ -411,15 +411,6 @@ export default function LocationPermissionScreen() {
                             <Ionicons name="locate" size={20} color="white" style={{ marginRight: 8 }} />
                             <Text className="text-white font-lato-bold text-base">Enable Location Access</Text>
                         </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => setIsMapPickerOpen(true)}
-                            activeOpacity={0.7}
-                            className="w-full bg-white border border-gray-200 py-3.5 rounded-xl flex-row items-center justify-center"
-                        >
-                            <Ionicons name="map-outline" size={18} color="#4A43EC" style={{ marginRight: 8 }} />
-                            <Text className="text-[#4A43EC] font-lato-bold text-sm">Select Location on Map</Text>
-                        </TouchableOpacity>
                     </View>
                 </Animated.View>
             )}
@@ -495,15 +486,6 @@ export default function LocationPermissionScreen() {
                         >
                             <Ionicons name="refresh" size={18} color="white" style={{ marginRight: 8 }} />
                             <Text className="text-white font-lato-bold text-base">Turn On GPS & Retry</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => setIsMapPickerOpen(true)}
-                            activeOpacity={0.7}
-                            className="w-full bg-white border border-gray-200 py-3.5 rounded-xl flex-row items-center justify-center"
-                        >
-                            <Ionicons name="map-outline" size={18} color="#4A43EC" style={{ marginRight: 8 }} />
-                            <Text className="text-[#4A43EC] font-lato-bold text-sm">Select Location on Map</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -673,7 +655,7 @@ export default function LocationPermissionScreen() {
                         </View>
 
                         <Text className="text-2xl font-lato-black text-gray-900 text-center mb-2">
-                            {detectedCity ? `We&apos;re not in ${detectedCity} yet!` : "Coming to your city soon!"}
+                            {detectedCity ? `We are not in ${detectedCity} yet!` : "Coming to your city soon!"}
                         </Text>
 
                         <Text className="text-sm font-lato text-gray-500 text-center leading-5 px-4 mb-8">
@@ -700,15 +682,6 @@ export default function LocationPermissionScreen() {
                         >
                             <Ionicons name="refresh" size={18} color="white" style={{ marginRight: 8 }} />
                             <Text className="text-white font-lato-bold text-base">Retry GPS</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => setIsMapPickerOpen(true)}
-                            activeOpacity={0.7}
-                            className="w-full bg-white border border-gray-200 py-3.5 rounded-xl flex-row items-center justify-center"
-                        >
-                            <Ionicons name="map-outline" size={18} color="#4A43EC" style={{ marginRight: 8 }} />
-                            <Text className="text-[#4A43EC] font-lato-bold text-sm">Select Location on Map</Text>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
