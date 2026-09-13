@@ -121,8 +121,17 @@ export default function Home() {
     const inventoryByProject = useSelector((state) => state.inventory.byProject);
     const inventoryLoading = useSelector((state) => state.inventory.loading);
     const authUser = useSelector((state) => state.auth.user);
+    const branchId = useSelector((state) => state.auth.branchId);
+    const authChecked = useSelector((state) => state.auth.authChecked);
+    const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
     const isKycCompleted = useSelector((state) => state.auth.isKycCompleted);
     const [activeTab, setActiveTab] = useState("Overview");
+
+    useEffect(() => {
+        if (authChecked && isLoggedIn && !branchId && !authUser?.branch_id) {
+            router.replace("/(auth)/location-permission");
+        }
+    }, [authChecked, isLoggedIn, branchId, authUser?.branch_id, router]);
 
     const [selectedProjectId, setSelectedProjectId] = useState("");
     const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);

@@ -10,6 +10,16 @@ import AuthHeader from "../../components/AuthHeader";
 
 const COUNTRY_CODE = "+91";
 
+const cleanPhoneNumber = (val) => {
+    let digits = String(val || '').replace(/[^0-9]/g, '');
+    if (digits.startsWith('91') && digits.length > 10) {
+        digits = digits.slice(2);
+    } else if (digits.startsWith('0') && digits.length > 10) {
+        digits = digits.slice(1);
+    }
+    return digits.slice(0, 10);
+};
+
 export default function Login() {
     const dispatch = useDispatch();
     const { mobile, loading, error } = useSelector((state) => state.auth);
@@ -80,7 +90,7 @@ export default function Login() {
                             <View className="w-[1px] h-5 bg-gray-200 mr-3" />
                             <TextInput
                                 value={mobile}
-                                onChangeText={(val) => dispatch(setMobile(val.replace(/[^0-9]/g, '').slice(0, 10)))}
+                                onChangeText={(val) => dispatch(setMobile(cleanPhoneNumber(val)))}
                                 placeholder="Phone Number"
                                 placeholderTextColor="#aaa"
                                 keyboardType="phone-pad"

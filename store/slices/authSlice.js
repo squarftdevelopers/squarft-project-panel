@@ -16,13 +16,6 @@ export const detectAndAssignBranchThunk = createAsyncThunk(
                 clientState,
             });
             const effectiveLocation = locationAddress || data?.formattedAddress || data?.detectedCity || data?.branch?.city;
-            if (data?.available && data?.branch) {
-                await authService.updateUserData({
-                    branch_id: data.branch.id,
-                    branch_name: data.branch.name,
-                    ...(effectiveLocation ? { location: effectiveLocation } : {}),
-                });
-            }
             return { ...data, effectiveLocation };
         } catch (error) {
             return rejectWithValue(error.message || 'Unable to detect nearest branch');
@@ -321,18 +314,8 @@ const authSlice = createSlice({
             })
             .addCase(detectAndAssignBranchThunk.fulfilled, (state, action) => {
                 state.loading = false;
-                if (action.payload?.available && action.payload?.branch) {
-                    state.branchId = action.payload.branch.id;
-                    state.branchName = action.payload.branch.name;
-                    if (action.payload.effectiveLocation) {
-                        state.location = action.payload.effectiveLocation;
-                    }
-                    if (state.user) {
-                        state.user.branch_id = action.payload.branch.id;
-                        if (action.payload.effectiveLocation) {
-                            state.user.location = action.payload.effectiveLocation;
-                        }
-                    }
+                if (action.payload?.effectiveLocation) {
+                    state.location = action.payload.effectiveLocation;
                 }
             })
             .addCase(detectAndAssignBranchThunk.rejected, (state, action) => {
