@@ -99,6 +99,7 @@ export default {
     [
       'expo-notifications',
       {
+        icon: './assets/icons/notification-icon.png',
         color: '#4A43EC',
         defaultChannel: 'project-panel-alerts',
       },
