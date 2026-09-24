@@ -5,7 +5,7 @@ export default function TabsLayout() {
     const { isLoggedIn, authChecked } = useSelector((state) => state.auth);
 
     if (authChecked && !isLoggedIn) {
-        return <Redirect href="/(auth)/onboarding1" />;
+        return <Redirect href="/(auth)/login" />;
     }
 
     // KycModal is mounted at the root and owns the upload/review action. Keep

@@ -10,7 +10,7 @@ export default function Index() {
         if (!authChecked) return;
 
         if (!isLoggedIn) {
-            router.replace("/(auth)/onboarding1");
+            router.replace("/(auth)/login");
             return;
         }
 

@@ -1,10 +1,11 @@
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { Provider, useDispatch } from 'react-redux';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Alert, BackHandler, Platform } from "react-native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import "../global.css";
 import { store } from '../store/store';
@@ -35,6 +36,32 @@ function AppInit() {
     return null;
 }
 
+function AndroidExitGuard() {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        if (Platform.OS !== "android") return undefined;
+
+        const onBackPress = () => {
+            if (router.canGoBack()) {
+                return false;
+            }
+
+            Alert.alert("Exit app", "Are you sure you want to exit the app?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Exit", style: "destructive", onPress: () => BackHandler.exitApp() },
+            ]);
+            return true;
+        };
+
+        const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+        return () => subscription.remove();
+    }, [pathname, router]);
+
+    return null;
+}
+
 export default function RootLayout() {
     const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
     const [fontsLoaded] = useFonts({
@@ -59,6 +86,7 @@ export default function RootLayout() {
                     <SafeAreaProvider>
                         <StatusBar style="dark" backgroundColor="transparent" translucent={true} />
                         <AppInit />
+                        <AndroidExitGuard />
                         <PushNotificationRegistrar />
                         <Stack>
                             <Stack.Screen name="index" options={{ headerShown: false }} />
