@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
@@ -36,6 +36,7 @@ const comingSoonIllustration = require("../../assets/images/coming-soon.jpg");
 
 export default function LocationPermissionScreen() {
     const dispatch = useDispatch();
+    const { user, branchId } = useSelector((state) => state.auth);
 
     // States: 'prompt' | 'detecting' | 'select_branch' | 'coming_soon' | 'gps_unavailable'
     const [viewState, setViewState] = useState("prompt");
@@ -45,6 +46,12 @@ export default function LocationPermissionScreen() {
     const [detectedCity, setDetectedCity] = useState(null);
     const [detectedAddress, setDetectedAddress] = useState(null);
     const [isAssigning, setIsAssigning] = useState(false);
+
+    useEffect(() => {
+        if (user?.branch_id || branchId) {
+            router.replace("/(tabs)/home");
+        }
+    }, [user?.branch_id, branchId]);
 
     /**
      * Sends coordinates to backend to detect matching branches.

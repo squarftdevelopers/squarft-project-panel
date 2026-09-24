@@ -13,7 +13,8 @@ import ImageLightbox from "../../components/ImageLightbox";
 import { updateProject, addProject } from "../../store/slices/projectsSlice";
 import { addNotification } from "../../store/slices/notificationSlice";
 import { setInventoryLoading, setInventoryData, setInventoryError } from "../../store/slices/inventorySlice";
-import { projectOverviewApi } from "../../services/api";
+import { projectOverviewApi, projectFormApi } from "../../services/api";
+import { updateStep6 } from "../../store/slices/projectSlice";
 import { visitService } from "../../services/visitService";
 
 import { dealService } from "../../services/dealService";
@@ -154,6 +155,66 @@ export default function Home() {
     const [overviewData, setOverviewData] = useState(null);
     const [overviewLoading, setOverviewLoading] = useState(false);
     const [selectedRangeByType, setSelectedRangeByType] = useState({});
+    const [fieldOfficerSheetVisible, setFieldOfficerSheetVisible] = useState(false);
+    const [fieldOfficers, setFieldOfficers] = useState([]);
+    const [fieldOfficersLoading, setFieldOfficersLoading] = useState(false);
+    const [fieldOfficerSearch, setFieldOfficerSearch] = useState("");
+    const [fieldOfficerAssigningId, setFieldOfficerAssigningId] = useState(null);
+
+    const loadFieldOfficers = useCallback(async () => {
+        setFieldOfficersLoading(true);
+        try {
+            const res = await projectFormApi.getAvailableFieldOfficers();
+            setFieldOfficers(res.data?.data || []);
+        } catch (error) {
+            console.warn('Failed to load field officers for assignment:', error?.message || error);
+            setFieldOfficers([]);
+        } finally {
+            setFieldOfficersLoading(false);
+        }
+    }, []);
+
+    const openProjectAssignmentSheet = async () => {
+        await loadFieldOfficers();
+        setFieldOfficerSearch("");
+        setFieldOfficerSheetVisible(true);
+    };
+
+    const assignFieldOfficerAndContinue = async (officer) => {
+        if (!officer?.id) return;
+        setFieldOfficerAssigningId(officer.id);
+        try {
+            const response = await projectFormApi.requestFieldOfficerOnboarding(officer.id);
+            setFieldOfficerSheetVisible(false);
+            Alert.alert(
+                "Request sent",
+                response.data?.message || `Your request was sent to ${officer.first_name || "the field officer"}. They will onboard your project.`,
+            );
+        } catch (error) {
+            Alert.alert(
+                "Request failed",
+                error.response?.data?.message || error.message || "Could not send the field officer request. Please try again.",
+            );
+        } finally {
+            setFieldOfficerAssigningId(null);
+        }
+    };
+
+    const continueWithManualForm = () => {
+        dispatch(updateStep6({ fieldOfficerId: null }));
+        setFieldOfficerSheetVisible(false);
+        router.push("/add-project");
+    };
+
+    const filteredFieldOfficers = useMemo(() => {
+        const query = fieldOfficerSearch.trim().toLowerCase();
+        if (!query) return fieldOfficers;
+        return fieldOfficers.filter((officer) => {
+            const fullName = `${officer.first_name || ''} ${officer.last_name || ''}`.trim();
+            const branchName = officer.branch_name || officer.company_name || '';
+            return `${fullName} ${branchName}`.toLowerCase().includes(query);
+        });
+    }, [fieldOfficers, fieldOfficerSearch]);
 
     // Visits state
     const [visitStats, setVisitStats] = useState(null);
@@ -1597,7 +1658,7 @@ export default function Home() {
                                 </View>
                                 <TouchableOpacity
                                     className="h-9 px-3 rounded-xl flex-row items-center border border-white/50"
-                                    onPress={() => router.push("/add-project")}
+                                    onPress={openProjectAssignmentSheet}
                                 >
                                     <View className="w-[18px] h-[18px] rounded-full bg-white items-center justify-center">
                                         <Ionicons name="add" size={14} color="#4A43EC" />
@@ -1744,6 +1805,104 @@ export default function Home() {
                 </Animated.View>
             </Animated.View>
 
+            <Modal
+                transparent
+                visible={fieldOfficerSheetVisible}
+                animationType="slide"
+                onRequestClose={() => setFieldOfficerSheetVisible(false)}
+            >
+                <View className="flex-1 justify-end bg-black/40">
+                    <View className="h-[78%] max-h-[78%] rounded-t-[24px] bg-white">
+                        <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-4">
+                            <View>
+                                <Text className="text-base font-lato-bold text-gray-900">Start Project Onboarding</Text>
+                                <Text className="mt-0.5 text-[10px] text-gray-500">Assign an officer or fill the project form yourself.</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setFieldOfficerSheetVisible(false)}>
+                                <Ionicons name="close" size={23} color="#334155" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View className="mx-4 my-3 flex-row items-center rounded-xl bg-[#F5F6FA] px-3">
+                            <Ionicons name="search" size={17} color="#94A3B8" />
+                            <TextInput
+                                value={fieldOfficerSearch}
+                                onChangeText={setFieldOfficerSearch}
+                                placeholder="Search officer or branch"
+                                placeholderTextColor="#94A3B8"
+                                className="ml-2 h-11 flex-1 text-sm text-gray-900"
+                            />
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={continueWithManualForm}
+                            className="mx-4 mb-3 flex-row items-center rounded-xl border border-[#4A43EC]/30 bg-[#F5F4FF] p-3"
+                        >
+                            <View className="h-10 w-10 items-center justify-center rounded-full bg-[#E7E5FF]">
+                                <Ionicons name="create-outline" size={19} color="#4A43EC" />
+                            </View>
+                            <View className="ml-3 flex-1">
+                                <Text className="text-sm font-lato-bold text-[#312E81]">Fill Form Manually</Text>
+                                <Text className="mt-1 text-[10px] text-[#6366A8]">Continue without assigning a field officer.</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#4A43EC" />
+                        </TouchableOpacity>
+
+                        {fieldOfficersLoading ? (
+                            <View className="items-center py-12">
+                                <ActivityIndicator size="small" color="#4A43EC" />
+                                <Text className="mt-3 text-sm text-gray-500">Loading field officers...</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                className="flex-1"
+                                nestedScrollEnabled
+                                keyboardShouldPersistTaps="handled"
+                                showsVerticalScrollIndicator
+                                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+                            >
+                                {filteredFieldOfficers.length === 0 ? (
+                                    <View className="items-center py-12">
+                                        <Ionicons name="people-outline" size={34} color="#CBD5E1" />
+                                        <Text className="mt-3 text-sm text-gray-400">No field officers found</Text>
+                                    </View>
+                                ) : (
+                                    filteredFieldOfficers.map((officer) => {
+                                        const fullName = `${officer.first_name || ''} ${officer.last_name || ''}`.trim();
+                                        return (
+                                            <TouchableOpacity
+                                                key={officer.id}
+                                                disabled={fieldOfficerAssigningId !== null}
+                                                onPress={() => assignFieldOfficerAndContinue(officer)}
+                                                className="mb-2 flex-row items-center rounded-xl border border-gray-100 bg-white p-3"
+                                                style={{ opacity: fieldOfficerAssigningId === officer.id ? 0.6 : 1 }}
+                                            >
+                                                <View className="h-10 w-10 items-center justify-center rounded-full bg-[#EDEBFF]">
+                                                    <Text className="text-xs font-lato-bold text-[#4A43EC]">
+                                                        {(officer.first_name?.[0] || '') + (officer.last_name?.[0] || '')}
+                                                    </Text>
+                                                </View>
+                                                <View className="ml-3 flex-1">
+                                                    <Text className="text-sm font-lato-bold text-gray-900">{fullName || 'Field officer'}</Text>
+                                                    <Text className="mt-1 text-[10px] text-gray-500">
+                                                        {officer.branch_name || 'No branch assigned'}{officer.branch_city ? ` · ${officer.branch_city}` : ''}
+                                                    </Text>
+                                                </View>
+                                                {fieldOfficerAssigningId === officer.id ? (
+                                                    <ActivityIndicator size="small" color="#4A43EC" />
+                                                ) : (
+                                                    <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    })
+                                )}
+                            </ScrollView>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
             {/* Tabs Bar */}
             {hasProjects && (
                 <View className="flex-row justify-around border-b border-gray-100 bg-white" style={{ paddingHorizontal: 10, zIndex: 0, elevation: 0 }}>
@@ -1787,7 +1946,7 @@ export default function Home() {
                                 <Text className="mt-4 text-[14px] font-lato-bold text-gray-700 text-center">No projects yet</Text>
                                 <Text className="mt-1 text-[11.5px] font-lato text-gray-400 text-center leading-5">Add your first project to see its overview here.</Text>
                                 <TouchableOpacity
-                                    onPress={() => router.push("/add-project")}
+                                    onPress={openProjectAssignmentSheet}
                                     className="mt-5 bg-[#4A43EC] rounded-xl px-6 py-2.5"
                                 >
                                     <Text className="text-white text-[12px] font-lato-bold">Add Project</Text>

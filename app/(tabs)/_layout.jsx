@@ -8,6 +8,9 @@ export default function TabsLayout() {
         return <Redirect href="/(auth)/onboarding1" />;
     }
 
+    // KycModal is mounted at the root and owns the upload/review action. Keep
+    // the tabs hidden underneath it until the canonical KYC status is loaded
+    // and verified, without navigating directly to the document form.
     return (
         <Stack screenOptions={{ headerShown: false, animation: "none" }}>
             <Stack.Screen name="home" />

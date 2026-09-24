@@ -371,7 +371,7 @@ export default function Settings() {
                 {/* KYC Status Card */}
                 {profile?.kyc_status && (
                     <TouchableOpacity
-                        onPress={() => router.push("/(screens)/kyc-details")}
+                        onPress={() => router.push("/(screens)/kyc")}
                         activeOpacity={0.85}
                         className="bg-white rounded-3xl border border-gray-200 p-5 mb-6 flex-row items-center justify-between"
                     >
@@ -387,7 +387,7 @@ export default function Settings() {
                                 {profile.kyc_status?.toLowerCase() === "rejected" && profile.kyc_rejection_reason ? (
                                     <Text className="text-red-500 text-[11px] font-lato mt-0.5" numberOfLines={2}>{profile.kyc_rejection_reason}</Text>
                                 ) : (
-                                    <Text className="text-gray-400 text-[11px] font-lato mt-0.5">Tap to view details</Text>
+                                    <Text className="text-gray-400 text-[11px] font-lato mt-0.5">Tap to view or update KYC</Text>
                                 )}
                             </View>
                         </View>

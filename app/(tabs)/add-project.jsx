@@ -607,7 +607,6 @@ export default function AddProject() {
                     documents: savedMedia
                         .filter(m => m.media_type === 'document')
                         .map(m => ({ uri: m.url, key: m.key, name: m.label || 'Document', isRemote: true })),
-                    fieldOfficerId: resumeData.step6?.field_officer_id || null,
                 }));
 
             setTimeout(() => dispatch(setStep(Math.min(resumeAt, 6))), 100);
@@ -1096,7 +1095,6 @@ export default function AddProject() {
                 await projectFormApi.finalizeStep6(projectId, {
                     media: mediaItems,
                     publish: !saveOnly,
-                    field_officer_id: step6.fieldOfficerId || null,
                 });
 
                 if (saveOnly) {
@@ -1184,7 +1182,7 @@ export default function AddProject() {
         }
 
         if (currentStep === 6) {
-            return step6.images.length < 3 || !step6.fieldOfficerId || !step6.agreed;
+            return step6.images.length < 3 || !step6.agreed;
         }
 
         return false;
@@ -4025,40 +4023,10 @@ function Step5() {
 function Step6() {
     const dispatch = useDispatch();
     const { step6 } = useSelector((state) => state.project);
-    const projectId = useSelector((state) => state.project.projectId);
-    const [officers, setOfficers] = useState([]);
-    const [officersLoading, setOfficersLoading] = useState(true);
-    const [officersError, setOfficersError] = useState('');
-    const [officerPickerVisible, setOfficerPickerVisible] = useState(false);
-    const [officerSearch, setOfficerSearch] = useState('');
 
     const updateField = (field, value) => {
         dispatch(updateStep6({ [field]: value }));
     };
-
-    const loadOfficers = useCallback(async () => {
-        if (!projectId) return;
-        setOfficersLoading(true);
-        setOfficersError('');
-        try {
-            const response = await projectFormApi.getAvailableFieldOfficers(projectId);
-            setOfficers(response.data?.data || []);
-        } catch (error) {
-            setOfficersError(error.response?.data?.message || error.message || 'Unable to load field officers.');
-        } finally {
-            setOfficersLoading(false);
-        }
-    }, [projectId]);
-
-    useEffect(() => {
-        loadOfficers();
-    }, [loadOfficers]);
-
-    const selectedOfficer = officers.find((officer) => officer.id === step6.fieldOfficerId);
-    const filteredOfficers = officers.filter((officer) => {
-        const value = `${officer.first_name || ''} ${officer.last_name || ''} ${officer.branch_name || ''}`.toLowerCase();
-        return value.includes(officerSearch.trim().toLowerCase());
-    });
 
     const pickImages = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -4167,39 +4135,6 @@ function Step6() {
                 </TouchableOpacity>
             </View>
 
-            <View>
-                <Text className="text-xs font-lato-bold text-black mb-2.5">Assign a Field Officer</Text>
-                <Text className="text-[10px] leading-4 text-gray-500 mb-2.5">
-                    The selected officer will receive a project request. Access and the lead pipeline entry are created only after they accept.
-                </Text>
-                <TouchableOpacity
-                    className="min-h-14 rounded-xl border border-gray-200 bg-white px-4 py-3 flex-row items-center justify-between"
-                    onPress={() => setOfficerPickerVisible(true)}
-                    disabled={officersLoading}
-                >
-                    <View className="flex-1 pr-3">
-                        <Text className={selectedOfficer ? "text-sm font-lato-bold text-gray-900" : "text-sm text-gray-400"}>
-                            {officersLoading
-                                ? 'Loading field officers...'
-                                : selectedOfficer
-                                    ? `${selectedOfficer.first_name} ${selectedOfficer.last_name}`.trim()
-                                    : 'Select Field Officer'}
-                        </Text>
-                        {selectedOfficer?.branch_name ? (
-                            <Text className="mt-1 text-[10px] text-gray-500">
-                                {selectedOfficer.branch_name}{selectedOfficer.branch_city ? ` · ${selectedOfficer.branch_city}` : ''}
-                            </Text>
-                        ) : null}
-                    </View>
-                    <Ionicons name="chevron-down" size={18} color="#64748B" />
-                </TouchableOpacity>
-                {officersError ? (
-                    <TouchableOpacity onPress={loadOfficers} className="mt-2">
-                        <Text className="text-[11px] text-red-500">{officersError} Tap to retry.</Text>
-                    </TouchableOpacity>
-                ) : null}
-            </View>
-
             {/* Agreement */}
             <View className="mt-2">
                 <Text className="text-xs font-lato-bold text-black mb-3">Agreement & Submission</Text>
@@ -4210,80 +4145,6 @@ function Step6() {
                 />
             </View>
 
-            <Modal
-                visible={officerPickerVisible}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setOfficerPickerVisible(false)}
-            >
-                <View className="flex-1 justify-end bg-black/40">
-                    <SafeAreaView edges={['bottom']} className="max-h-[78%] rounded-t-[24px] bg-white">
-                        <View className="flex-row items-center justify-between border-b border-gray-100 px-5 py-4">
-                            <View>
-                                <Text className="text-base font-lato-bold text-gray-900">Select Field Officer</Text>
-                                <Text className="mt-0.5 text-[10px] text-gray-500">The request will be sent when you submit.</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setOfficerPickerVisible(false)}>
-                                <Ionicons name="close" size={23} color="#334155" />
-                            </TouchableOpacity>
-                        </View>
-                        <View className="mx-4 my-3 flex-row items-center rounded-xl bg-[#F5F6FA] px-3">
-                            <Ionicons name="search" size={17} color="#94A3B8" />
-                            <TextInput
-                                value={officerSearch}
-                                onChangeText={setOfficerSearch}
-                                placeholder="Search name or branch"
-                                placeholderTextColor="#94A3B8"
-                                className="ml-2 h-11 flex-1 text-sm text-gray-900"
-                            />
-                        </View>
-                        <FlatList
-                            data={filteredOfficers}
-                            keyExtractor={(item) => item.id}
-                            keyboardShouldPersistTaps="handled"
-                            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-                            ListEmptyComponent={
-                                <View className="items-center py-12">
-                                    <Ionicons name="people-outline" size={34} color="#CBD5E1" />
-                                    <Text className="mt-3 text-sm text-gray-400">No available field officers</Text>
-                                </View>
-                            }
-                            renderItem={({ item }) => {
-                                const selected = item.id === step6.fieldOfficerId;
-                                return (
-                                    <TouchableOpacity
-                                        onPress={() => {
-                                            updateField('fieldOfficerId', item.id);
-                                            setOfficerPickerVisible(false);
-                                            setOfficerSearch('');
-                                        }}
-                                        className={`mb-2 flex-row items-center rounded-xl border p-3 ${selected ? 'border-[#4A43EC] bg-[#F3F1FF]' : 'border-gray-100 bg-white'}`}
-                                    >
-                                        <View className="h-10 w-10 items-center justify-center rounded-full bg-[#EDEBFF]">
-                                            <Text className="text-xs font-lato-bold text-[#4A43EC]">
-                                                {(item.first_name?.[0] || '') + (item.last_name?.[0] || '')}
-                                            </Text>
-                                        </View>
-                                        <View className="ml-3 flex-1">
-                                            <Text className="text-sm font-lato-bold text-gray-900">
-                                                {`${item.first_name || ''} ${item.last_name || ''}`.trim()}
-                                            </Text>
-                                            <Text className="mt-1 text-[10px] text-gray-500">
-                                                {item.branch_name || 'No branch assigned'}{item.branch_city ? ` · ${item.branch_city}` : ''}
-                                            </Text>
-                                        </View>
-                                        <Ionicons
-                                            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                                            size={20}
-                                            color={selected ? '#4A43EC' : '#CBD5E1'}
-                                        />
-                                    </TouchableOpacity>
-                                );
-                            }}
-                        />
-                    </SafeAreaView>
-                </View>
-            </Modal>
         </View>
     );
 }

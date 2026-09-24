@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Location from "expo-location";
 import {
     setOtpDigit,
     clearOtp,
@@ -93,15 +92,7 @@ export default function OtpVerification() {
                 dispatch(setLoggedIn(true));
 
                 const userObj = loginResult.payload?.user;
-                let hasPermission = false;
-                try {
-                    const perm = await Location.getForegroundPermissionsAsync();
-                    hasPermission = perm.status === 'granted';
-                } catch {
-                    hasPermission = false;
-                }
-
-                if (userObj?.branch_id && hasPermission) {
+                if (userObj?.branch_id) {
                     await dispatch(fetchDeveloperKyc());
                     router.replace("/(tabs)/home");
                 } else {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -16,15 +16,15 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDeveloperKyc, submitDeveloperKyc, uploadDeveloperKyc } from '../../store/slices/authSlice';
 
 const isApprovedStatus = (status) => ['verified', 'approved'].includes(String(status || '').toLowerCase());
-const isReviewStatus = (status) => ['under_review', 'pending'].includes(String(status || '').toLowerCase());
+const isReviewStatus = (status) => ['pending', 'submitted', 'under_review', 'in_review'].includes(String(status || '').toLowerCase());
 
-const UploadBox = ({ label, value, existingUrl, icon, onPress, onRemove, useCamera }) => (
+const UploadBox = ({ label, value, existingUrl, icon, onPress, onRemove, useCamera, disabled }) => (
     <View style={styles.fieldBlock}>
         <Text style={styles.label}>{label}</Text>
         {value || existingUrl ? (
@@ -37,11 +37,11 @@ const UploadBox = ({ label, value, existingUrl, icon, onPress, onRemove, useCame
                         {value?.fileName || 'Document uploaded'}
                     </Text>
                     {value ? (
-                        <Pressable onPress={onRemove} style={styles.removeButton}>
+                        <Pressable disabled={disabled} onPress={onRemove} style={styles.removeButton}>
                             <Ionicons name="trash-outline" size={18} color="#DC2626" />
                         </Pressable>
                     ) : (
-                        <Pressable onPress={onPress} style={styles.replaceButton}>
+                        <Pressable disabled={disabled} onPress={onPress} style={styles.replaceButton}>
                             <Text style={styles.replaceText}>Replace</Text>
                         </Pressable>
                     )}
@@ -49,12 +49,12 @@ const UploadBox = ({ label, value, existingUrl, icon, onPress, onRemove, useCame
                 <Image source={{ uri: value?.uri || existingUrl }} style={styles.preview} resizeMode="cover" />
             </View>
         ) : (
-            <Pressable onPress={onPress} style={styles.uploadBox}>
+            <Pressable disabled={disabled} onPress={onPress} style={styles.uploadBox}>
                 <View style={styles.uploadIcon}>
                     <MaterialCommunityIcons name={icon} size={28} color="#4A43EC" />
                 </View>
                 <Text style={styles.uploadTitle}>{useCamera ? 'Take Selfie or Upload' : 'Upload Image'}</Text>
-                <Text style={styles.uploadHint}>JPG or PNG</Text>
+                <Text style={styles.uploadHint}>JPG, PNG, or WEBP · Maximum 5 MB</Text>
             </Pressable>
         )}
     </View>
@@ -77,19 +77,12 @@ const statusMeta = {
         message: 'Your documents are submitted. App access will unlock after admin approval.',
         action: 'Refresh Status',
     },
-    pending: {
-        icon: 'clock-outline',
-        color: '#CA8A04',
-        bg: '#FEF9C3',
-        title: 'KYC Pending',
-        message: 'Your documents are saved. Submit all required documents for admin review.',
-        action: 'Refresh Status',
-    },
 };
 
 export default function KycScreen() {
     const dispatch = useDispatch();
-    const { kyc, kycStatus, kycLoading } = useSelector((state) => state.auth);
+    const { token, kyc, kycStatus, kycLoading, kycInitialized } = useSelector((state) => state.auth);
+    const submittingRef = useRef(false);
 
     const [profilePhoto, setProfilePhoto] = useState(null);
     const [aadharFront, setAadharFront] = useState(null);
@@ -101,10 +94,11 @@ export default function KycScreen() {
     const [refreshing, setRefreshing] = useState(false);
 
     const onRefresh = async () => {
+        if (refreshing) return;
         setRefreshing(true);
         try {
             await dispatch(fetchDeveloperKyc()).unwrap();
-        } catch (e) {
+        } catch (_error) {
             // ignore
         } finally {
             setRefreshing(false);
@@ -122,24 +116,40 @@ export default function KycScreen() {
     }, [kyc]);
 
     const pickImage = async (setter, useCamera = false) => {
-        const permission = useCamera
-            ? await ImagePicker.requestCameraPermissionsAsync()
-            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (submittingRef.current) return;
+        try {
+            const permission = useCamera
+                ? await ImagePicker.requestCameraPermissionsAsync()
+                : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-        if (permission.status !== 'granted') {
-            Alert.alert('Permission needed', useCamera ? 'Camera permission is required.' : 'Photo library permission is required.');
-            return;
+            if (permission.status !== 'granted') {
+                Alert.alert('Permission Needed', useCamera ? 'Camera permission is required.' : 'Photo library permission is required.');
+                return;
+            }
+
+            const result = useCamera
+                ? await ImagePicker.launchCameraAsync({
+                    cameraType: ImagePicker.CameraType.front,
+                    allowsEditing: true,
+                    quality: 0.8,
+                })
+                : await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: true,
+                    quality: 0.8,
+                });
+
+            if (!result.canceled && result.assets?.[0]) {
+                const asset = result.assets[0];
+                if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+                    Alert.alert('Image Too Large', 'Please select an image smaller than 5 MB.');
+                    return;
+                }
+                setter(asset);
+            }
+        } catch (error) {
+            Alert.alert('Unable to Open Photo', error?.message || 'Please try again.');
         }
-
-        const result = useCamera
-            ? await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 })
-            : await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 0.8,
-            });
-
-        if (!result.canceled) setter(result.assets[0]);
     };
 
     const pickSelfie = (setter) => {
@@ -155,6 +165,7 @@ export default function KycScreen() {
     };
 
     const handleSubmit = async () => {
+        if (submittingRef.current || !token) return;
         const needsProfile = !profilePhoto && !kyc?.profile_photo_url;
         const needsAadharFront = !aadharFront && !kyc?.aadhar_front_url;
         const needsAadharBack = !aadharBack && !kyc?.aadhar_back_url;
@@ -177,6 +188,7 @@ export default function KycScreen() {
             return;
         }
 
+        submittingRef.current = true;
         setSubmitting(true);
         try {
             await dispatch(uploadDeveloperKyc({
@@ -188,22 +200,43 @@ export default function KycScreen() {
                 panNumber: cleanPan,
             })).unwrap();
             await dispatch(submitDeveloperKyc()).unwrap();
-            Alert.alert('KYC Submitted', 'Your KYC has been submitted for admin approval.');
+            setProfilePhoto(null);
+            setAadharFront(null);
+            setAadharBack(null);
+            setPanCard(null);
+            await dispatch(fetchDeveloperKyc());
+            router.replace('/(tabs)/home');
         } catch (error) {
-            Alert.alert('KYC Failed', error || 'Unable to submit KYC. Please try again.');
+            await dispatch(fetchDeveloperKyc());
+            const message = typeof error === 'string' ? error : error?.message;
+            Alert.alert('Submission Failed', message || 'Unable to submit KYC. Please try again.');
         } finally {
+            submittingRef.current = false;
             setSubmitting(false);
         }
     };
 
-    const currentStatus = String(kycStatus || '').toLowerCase();
+    const rawStatus = String(kycStatus || '').toLowerCase();
+    const currentStatus = rawStatus === 'pending' ? 'under_review' : rawStatus;
     const showStatusOnly = isApprovedStatus(currentStatus) || isReviewStatus(currentStatus);
-    const meta = statusMeta[currentStatus] || statusMeta.under_review;
+    const meta = isApprovedStatus(currentStatus) ? statusMeta.verified : statusMeta.under_review;
     const isRejected = currentStatus === 'rejected';
     const handleBack = () => {
+        if (submittingRef.current) return;
         if (router.canGoBack()) router.back();
         else router.replace('/(tabs)/home');
     };
+
+    if (!token) return <Redirect href="/(auth)/login" />;
+
+    if (!kycInitialized || (kycLoading && !kyc)) {
+        return (
+            <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#4A43EC" />
+                <Text style={styles.loaderText}>Loading documents...</Text>
+            </View>
+        );
+    }
 
     if (showStatusOnly) {
         return (
@@ -247,7 +280,7 @@ export default function KycScreen() {
         <SafeAreaView style={styles.screen} edges={['top']}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <Pressable onPress={handleBack} style={styles.backButton}>
+                <Pressable disabled={submitting} onPress={handleBack} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={22} color="#111827" />
                 </Pressable>
                 <Text style={styles.headerTitle}>KYC Verification</Text>
@@ -293,6 +326,7 @@ export default function KycScreen() {
                         useCamera
                         onPress={() => pickSelfie(setProfilePhoto)}
                         onRemove={() => setProfilePhoto(null)}
+                        disabled={submitting}
                     />
 
                     <UploadBox
@@ -302,6 +336,7 @@ export default function KycScreen() {
                         icon="cloud-upload-outline"
                         onPress={() => pickImage(setAadharFront)}
                         onRemove={() => setAadharFront(null)}
+                        disabled={submitting}
                     />
 
                     <UploadBox
@@ -311,6 +346,7 @@ export default function KycScreen() {
                         icon="cloud-upload-outline"
                         onPress={() => pickImage(setAadharBack)}
                         onRemove={() => setAadharBack(null)}
+                        disabled={submitting}
                     />
 
                     <UploadBox
@@ -320,6 +356,7 @@ export default function KycScreen() {
                         icon="card-account-details-outline"
                         onPress={() => pickImage(setPanCard)}
                         onRemove={() => setPanCard(null)}
+                        disabled={submitting}
                     />
 
                     <View style={styles.inputGroup}>
@@ -366,6 +403,8 @@ export default function KycScreen() {
 }
 
 const styles = StyleSheet.create({
+    loaderContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+    loaderText: { marginTop: 12, color: '#6B7280', fontSize: 14 },
     flex: { flex: 1 },
     screen: { flex: 1, backgroundColor: '#FFFFFF' },
     header: {

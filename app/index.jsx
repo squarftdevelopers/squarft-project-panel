@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useSelector } from "react-redux";
-import * as Location from "expo-location";
 
 export default function Index() {
     const router = useRouter();
@@ -15,20 +14,14 @@ export default function Index() {
             return;
         }
 
-        (async () => {
-            try {
-                const hasBranch = Boolean(user?.branch_id || branchId);
-                const perm = await Location.getForegroundPermissionsAsync();
-                if (!hasBranch || perm.status !== "granted") {
-                    router.replace("/(auth)/location-permission");
-                } else {
-                    router.replace("/(tabs)/home");
-                }
-            } catch {
-                router.replace("/(auth)/location-permission");
-            }
-        })();
-    }, [authChecked, isLoggedIn, user?.branch_id, branchId, router]);
+        const hasBranch = Boolean(user?.branch_id || branchId);
+        if (!hasBranch) {
+            router.replace("/(auth)/location-permission");
+            return;
+        }
+
+        router.replace("/(tabs)/home");
+    }, [authChecked, branchId, isLoggedIn, router, user?.branch_id]);
 
     return null;
 }
