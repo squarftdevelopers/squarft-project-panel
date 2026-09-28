@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import { useDispatch, useSelector } from "react-redux";
-import { addNotification } from "../store/slices/notificationSlice";
+import { addNotification, replaceNotifications } from "../store/slices/notificationSlice";
 import { hydrateNotificationsFromStorage } from "../store/store";
 import {
     getInitialNotificationResponseAsync,
@@ -13,8 +13,20 @@ import {
     buildProjectPanelNotificationContent,
     getNotificationEventKeyFromData,
 } from "../services/projectPanelNotificationCatalog";
+import { notificationApi } from "../services/notificationApi";
 
 const getUserId = (user) => user?.id || user?.user_id || user?._id || user?.uuid || null;
+
+const mapApiNotification = (notification) => ({
+    id: notification.id,
+    title: notification.title,
+    description: notification.body,
+    message: notification.body,
+    watched: Boolean(notification.is_read),
+    target: notification.metadata?.route || null,
+    type: notification.type || "default",
+    time: notification.sent_at ? new Date(notification.sent_at).toLocaleDateString() : "Recently",
+});
 
 const toStoreNotification = (notification) => {
     const content = notification?.request?.content || {};
@@ -33,6 +45,7 @@ const toStoreNotification = (notification) => {
 export default function PushNotificationRegistrar() {
     const dispatch = useDispatch();
     const { isLoggedIn, user, token } = useSelector((state) => state.auth);
+    const notificationsHydrated = useSelector((state) => state.notifications.hydrated);
     const hasHandledInitialResponse = useRef(false);
 
     useEffect(() => {
@@ -52,6 +65,19 @@ export default function PushNotificationRegistrar() {
             console.warn("[PUSH] Registration failed:", error.message);
         });
     }, [isLoggedIn, token, user]);
+
+    useEffect(() => {
+        if (!isLoggedIn || !token || !notificationsHydrated) return;
+
+        notificationApi.list()
+            .then((response) => {
+                const list = response.data?.data || [];
+                dispatch(replaceNotifications(list.map(mapApiNotification)));
+            })
+            .catch((error) => {
+                console.warn("[PUSH] Notification badge sync failed:", error.message);
+            });
+    }, [dispatch, isLoggedIn, notificationsHydrated, token]);
 
     useEffect(() => {
         const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {

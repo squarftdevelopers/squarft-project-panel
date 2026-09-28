@@ -42,7 +42,10 @@ export default function Login() {
         const result = await dispatch(sendOtpThunk({ phone, purpose: 'login' }));
 
         if (sendOtpThunk.fulfilled.match(result)) {
-            router.push("/otp-verification");
+            router.push({
+                pathname: "/(auth)/otp-verification",
+                params: { otpToken: result.payload.otp_token },
+            });
             return;
         }
 

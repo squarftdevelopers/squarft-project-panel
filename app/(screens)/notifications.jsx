@@ -2,7 +2,13 @@ import { useEffect, useState, useCallback } from "react";
 import { View, Text, Pressable, StatusBar, Platform, ScrollView, RefreshControl } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
+import { useDispatch } from "react-redux";
 import { notificationApi } from "../../services/notificationApi";
+import {
+    markAllAsWatched,
+    markAsWatched,
+    replaceNotifications,
+} from "../../store/slices/notificationSlice";
 
 const getIconConfig = (type) => {
     switch (type) {
@@ -39,6 +45,7 @@ function NotificationIcon({ type }) {
 }
 
 export default function Notifications() {
+    const dispatch = useDispatch();
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
@@ -57,11 +64,12 @@ export default function Notifications() {
                 time: n.sent_at ? new Date(n.sent_at).toLocaleDateString() : "Recently",
             }));
             setNotifications(mapped);
+            dispatch(replaceNotifications(mapped));
             setUnreadCount(Number(res.data?.unread_count ?? res.unread_count ?? 0));
         } catch (err) {
             console.warn("Failed to load project panel notifications:", err.message);
         }
-    }, []);
+    }, [dispatch]);
 
     useEffect(() => {
         loadNotifications();
@@ -77,6 +85,7 @@ export default function Notifications() {
         try {
             await notificationApi.markAllRead();
             setNotifications((prev) => prev.map((item) => ({ ...item, watched: true })));
+            dispatch(markAllAsWatched());
             setUnreadCount(0);
         } catch (err) {
             console.warn("Failed to mark all as read:", err.message);
@@ -90,6 +99,7 @@ export default function Notifications() {
                 setNotifications((prev) =>
                     prev.map((n) => (n.id === item.id ? { ...n, watched: true } : n))
                 );
+                dispatch(markAsWatched(item.id));
                 setUnreadCount((prev) => Math.max(0, prev - 1));
             } catch (err) {
                 console.warn("Failed to mark read:", err.message);

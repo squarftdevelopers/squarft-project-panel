@@ -37,6 +37,10 @@ const notificationSlice = createSlice({
         clearNotifications: (state) => {
             state.list = [];
         },
+        replaceNotifications: (state, action) => {
+            state.list = Array.isArray(action.payload) ? action.payload : [];
+            state.hydrated = true;
+        },
         // payload is `null` specifically when AsyncStorage has never stored
         // anything for this device (a true first launch, so the welcome
         // notifications are seeded) — as opposed to an intentionally empty
@@ -48,5 +52,12 @@ const notificationSlice = createSlice({
     },
 });
 
-export const { markAsWatched, markAllAsWatched, addNotification, clearNotifications, hydrateNotifications } = notificationSlice.actions;
+export const {
+    markAsWatched,
+    markAllAsWatched,
+    addNotification,
+    clearNotifications,
+    replaceNotifications,
+    hydrateNotifications,
+} = notificationSlice.actions;
 export default notificationSlice.reducer;

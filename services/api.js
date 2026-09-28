@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { notifyUnauthorized } from '../utils/unauthorizedSession';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -74,6 +75,7 @@ api.interceptors.response.use(
       } catch (storageError) {
         console.warn('⚠️ [API] Could not clear storage:', storageError.message);
       }
+      notifyUnauthorized();
     } else if (error.response?.status === 500) {
       error.userMessage = 'Server error. Please try again later.';
     }

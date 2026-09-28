@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { kycService } from '../../services/kycService';
 import { authService } from '../../services/authService';
 import { branchService } from '../../services/branchService';
+import { isJwtExpired } from '../../utils/tokenExpiry';
 
 const isApprovedKycStatus = (status) => ['verified', 'approved'].includes(String(status || '').toLowerCase());
 
@@ -42,10 +43,17 @@ export const assignBranchThunk = createAsyncThunk(
     }
 );
 
-export const hydrateAuthThunk = createAsyncThunk('auth/hydrate', async () => ({
-    token: await authService.getToken(),
-    user: await authService.getUserData(),
-}));
+export const hydrateAuthThunk = createAsyncThunk('auth/hydrate', async () => {
+    const token = await authService.getToken();
+    if (token && isJwtExpired(token)) {
+        await authService.logout();
+        return { token: null, user: null };
+    }
+    return {
+        token,
+        user: await authService.getUserData(),
+    };
+});
 
 export const sendOtpThunk = createAsyncThunk(
     'auth/sendOtp',
@@ -61,6 +69,9 @@ export const sendOtpThunk = createAsyncThunk(
 export const verifyOtpThunk = createAsyncThunk(
     'auth/verifyOtp',
     async ({ otp_token, otp }, { rejectWithValue }) => {
+        if (!otp_token || !otp) {
+            return rejectWithValue('OTP session is missing. Please request a new OTP.');
+        }
         try {
             return await authService.verifyOtp(otp_token, otp);
         } catch (error) {
@@ -103,7 +114,9 @@ export const fetchDeveloperKyc = createAsyncThunk(
                 status: error.status,
                 data: error.data,
             };
-            console.error('[KYC THUNK] fetchDeveloperKyc rejected:', diagnostic);
+            if (diagnostic.status !== 401) {
+                console.error('[KYC THUNK] fetchDeveloperKyc rejected:', diagnostic);
+            }
             return rejectWithValue(diagnostic);
         }
     }
@@ -293,7 +306,18 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
-            .addCase(loginThunk.pending, (state) => { state.loading = true; state.error = null; })
+            .addCase(loginThunk.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+                // KYC belongs to the account being authenticated. Clear any
+                // previous account's cached result before the new login can
+                // reach an authenticated screen.
+                state.kyc = null;
+                state.kycStatus = null;
+                state.isKycCompleted = false;
+                state.kycInitialized = false;
+                state.kycError = null;
+            })
             .addCase(loginThunk.fulfilled, (state, action) => {
                 state.loading = false;
                 state.token = action.payload.token;
@@ -361,9 +385,15 @@ const authSlice = createSlice({
                 state.kycInitialized = true;
             })
             .addCase(fetchDeveloperKyc.rejected, (state, action) => {
-                console.error('[KYC REDUX] Request rejected:', action.payload || action.error);
+                if (action.payload?.status !== 401) {
+                    console.error('[KYC REDUX] Request rejected:', action.payload || action.error);
+                }
                 state.kycLoading = false;
                 state.kycError = action.payload?.message || action.error?.message;
+                // A 404/missing KYC response must not leave an approved KYC
+                // object from a previously logged-in account in memory.
+                state.kyc = null;
+                state.kycStatus = null;
                 state.isKycCompleted = false;
                 state.kycInitialized = true;
             })

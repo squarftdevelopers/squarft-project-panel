@@ -40,10 +40,15 @@ const UploadBox = ({ label, value, existingUrl, icon, onPress, onRemove, useCame
                         <Pressable disabled={disabled} onPress={onRemove} style={styles.removeButton}>
                             <Ionicons name="trash-outline" size={18} color="#DC2626" />
                         </Pressable>
-                    ) : (
+                    ) : !disabled ? (
                         <Pressable disabled={disabled} onPress={onPress} style={styles.replaceButton}>
                             <Text style={styles.replaceText}>Replace</Text>
                         </Pressable>
+                    ) : (
+                        <View style={styles.verifiedBadge}>
+                            <MaterialCommunityIcons name="check-decagram" size={15} color="#15803D" />
+                            <Text style={styles.verifiedBadgeText}>Verified</Text>
+                        </View>
                     )}
                 </View>
                 <Image source={{ uri: value?.uri || existingUrl }} style={styles.preview} resizeMode="cover" />
@@ -219,6 +224,7 @@ export default function KycScreen() {
     const rawStatus = String(kycStatus || '').toLowerCase();
     const currentStatus = rawStatus === 'pending' ? 'under_review' : rawStatus;
     const showStatusOnly = isApprovedStatus(currentStatus) || isReviewStatus(currentStatus);
+    const isApproved = isApprovedStatus(currentStatus);
     const meta = isApprovedStatus(currentStatus) ? statusMeta.verified : statusMeta.under_review;
     const isRejected = currentStatus === 'rejected';
     const handleBack = () => {
@@ -238,7 +244,7 @@ export default function KycScreen() {
         );
     }
 
-    if (showStatusOnly) {
+    if (showStatusOnly && !isApproved) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
                 <ScrollView
@@ -283,7 +289,7 @@ export default function KycScreen() {
                 <Pressable disabled={submitting} onPress={handleBack} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={22} color="#111827" />
                 </Pressable>
-                <Text style={styles.headerTitle}>KYC Verification</Text>
+                <Text style={styles.headerTitle}>{isApproved ? 'KYC Documents' : 'KYC Verification'}</Text>
                 <View style={styles.headerSpacer} />
             </View>
 
@@ -305,6 +311,16 @@ export default function KycScreen() {
                         />
                     }
                 >
+                    {isApproved && (
+                        <View style={styles.approvedBanner}>
+                            <MaterialCommunityIcons name="check-decagram" size={22} color="#15803D" />
+                            <View style={styles.approvedBannerCopy}>
+                                <Text style={styles.approvedBannerTitle}>KYC Verified</Text>
+                                <Text style={styles.approvedBannerText}>These documents have been approved and are read-only.</Text>
+                            </View>
+                        </View>
+                    )}
+
                     {isRejected && (
                         <View style={styles.rejectedBanner}>
                             <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#DC2626" />
@@ -315,7 +331,9 @@ export default function KycScreen() {
                     )}
 
                     <Text style={styles.subtitle}>
-                        Upload these documents once. You can access the app only after admin approval.
+                        {isApproved
+                            ? 'Your submitted identity documents are shown below.'
+                            : 'Upload these documents once. You can access the app only after admin approval.'}
                     </Text>
 
                     <UploadBox
@@ -326,7 +344,7 @@ export default function KycScreen() {
                         useCamera
                         onPress={() => pickSelfie(setProfilePhoto)}
                         onRemove={() => setProfilePhoto(null)}
-                        disabled={submitting}
+                        disabled={submitting || isApproved}
                     />
 
                     <UploadBox
@@ -336,7 +354,7 @@ export default function KycScreen() {
                         icon="cloud-upload-outline"
                         onPress={() => pickImage(setAadharFront)}
                         onRemove={() => setAadharFront(null)}
-                        disabled={submitting}
+                        disabled={submitting || isApproved}
                     />
 
                     <UploadBox
@@ -346,7 +364,7 @@ export default function KycScreen() {
                         icon="cloud-upload-outline"
                         onPress={() => pickImage(setAadharBack)}
                         onRemove={() => setAadharBack(null)}
-                        disabled={submitting}
+                        disabled={submitting || isApproved}
                     />
 
                     <UploadBox
@@ -356,18 +374,19 @@ export default function KycScreen() {
                         icon="card-account-details-outline"
                         onPress={() => pickImage(setPanCard)}
                         onRemove={() => setPanCard(null)}
-                        disabled={submitting}
+                        disabled={submitting || isApproved}
                     />
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Aadhaar Number</Text>
                         <TextInput
                             value={aadharNumber}
+                            editable={!isApproved}
                             onChangeText={(value) => setAadharNumber(value.replace(/\D/g, '').slice(0, 12))}
                             keyboardType="number-pad"
                             placeholder="Enter 12 digit Aadhaar number"
                             placeholderTextColor="#9CA3AF"
-                            style={styles.input}
+                            style={[styles.input, isApproved && styles.readOnlyInput]}
                             maxLength={12}
                         />
                     </View>
@@ -376,26 +395,29 @@ export default function KycScreen() {
                         <Text style={styles.label}>PAN Number</Text>
                         <TextInput
                             value={panNumber}
+                            editable={!isApproved}
                             onChangeText={(value) => setPanNumber(value.toUpperCase().slice(0, 10))}
                             autoCapitalize="characters"
                             placeholder="ABCDE1234F"
                             placeholderTextColor="#9CA3AF"
-                            style={styles.input}
+                            style={[styles.input, isApproved && styles.readOnlyInput]}
                             maxLength={10}
                         />
                     </View>
 
-                    <Pressable
-                        onPress={handleSubmit}
-                        disabled={submitting || kycLoading}
-                        style={[styles.submitButton, (submitting || kycLoading) && styles.disabledButton]}
-                    >
-                        {submitting || kycLoading ? (
-                            <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                            <Text style={styles.submitText}>{isRejected ? 'Re-submit KYC' : 'Submit KYC'}</Text>
-                        )}
-                    </Pressable>
+                    {!isApproved && (
+                        <Pressable
+                            onPress={handleSubmit}
+                            disabled={submitting || kycLoading}
+                            style={[styles.submitButton, (submitting || kycLoading) && styles.disabledButton]}
+                        >
+                            {submitting || kycLoading ? (
+                                <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.submitText}>{isRejected ? 'Re-submit KYC' : 'Submit KYC'}</Text>
+                            )}
+                        </Pressable>
+                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -437,6 +459,20 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     rejectedText: { color: '#B91C1C', fontSize: 13, lineHeight: 19, flex: 1 },
+    approvedBanner: {
+        backgroundColor: '#ECFDF3',
+        borderColor: '#BBF7D0',
+        borderWidth: 1,
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 11,
+    },
+    approvedBannerCopy: { flex: 1 },
+    approvedBannerTitle: { color: '#166534', fontSize: 14, fontWeight: '700' },
+    approvedBannerText: { color: '#15803D', fontSize: 12, lineHeight: 18, marginTop: 2 },
     fieldBlock: { marginBottom: 22 },
     label: { color: '#374151', fontSize: 14, fontWeight: '700', marginBottom: 9 },
     uploadBox: {
@@ -481,6 +517,8 @@ const styles = StyleSheet.create({
     removeButton: { backgroundColor: '#FEF2F2', borderRadius: 20, padding: 8 },
     replaceButton: { backgroundColor: '#EEF2FF', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 },
     replaceText: { color: '#4A43EC', fontSize: 12, fontWeight: '700' },
+    verifiedBadge: { backgroundColor: '#DCFCE7', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    verifiedBadgeText: { color: '#15803D', fontSize: 11, fontWeight: '700' },
     preview: { width: '100%', height: 178, borderRadius: 12 },
     inputGroup: { marginBottom: 20 },
     input: {
@@ -493,6 +531,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         backgroundColor: '#FFFFFF',
     },
+    readOnlyInput: { backgroundColor: '#F8FAFC', color: '#475569' },
     submitButton: {
         backgroundColor: '#4A43EC',
         borderRadius: 14,

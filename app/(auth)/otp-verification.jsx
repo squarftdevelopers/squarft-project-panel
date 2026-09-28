@@ -1,6 +1,6 @@
 import { Text, View, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,7 @@ import {
     clearOtp,
     setLoggedIn,
     clearError,
+    setError,
     sendOtpThunk,
     verifyOtpThunk,
     registerThunk,
@@ -23,6 +24,7 @@ const COUNTRY_CODE = "+91";
 
 export default function OtpVerification() {
     const dispatch = useDispatch();
+    const { otpToken: routeOtpToken } = useLocalSearchParams();
     const {
         otp,
         otpFlow,
@@ -80,7 +82,14 @@ export default function OtpVerification() {
         const otpString = otp.join('');
         if (otpString.length !== 6) return;
 
-        const result = await dispatch(verifyOtpThunk({ otp_token: otpToken, otp: otpString }));
+        const effectiveOtpToken = otpToken || (Array.isArray(routeOtpToken) ? routeOtpToken[0] : routeOtpToken);
+        if (!effectiveOtpToken) {
+            autoSubmittedRef.current = true;
+            dispatch(setError('OTP session is missing. Please tap Resend OTP.'));
+            return;
+        }
+
+        const result = await dispatch(verifyOtpThunk({ otp_token: effectiveOtpToken, otp: otpString }));
         if (!verifyOtpThunk.fulfilled.match(result)) return;
 
         const verifiedToken = result.payload.verified_token;
@@ -117,7 +126,7 @@ export default function OtpVerification() {
             dispatch(setLoggedIn(true));
             router.replace("/(auth)/location-permission");
         }
-    }, [otp, otpToken, otpFlow, firstName, lastName, companyName, companyType, reraNumber, dispatch]);
+    }, [otp, otpToken, routeOtpToken, otpFlow, firstName, lastName, companyName, companyType, reraNumber, dispatch]);
 
     // Auto-submit once all 6 digits are present (covers paste + OS autofill).
     useEffect(() => {
@@ -135,8 +144,11 @@ export default function OtpVerification() {
         dispatch(clearError());
         dispatch(clearOtp());
         autoSubmittedRef.current = false;
-        await dispatch(sendOtpThunk({ phone: `${COUNTRY_CODE}${mobile}`, purpose: otpFlow }));
-        inputs.current[0]?.focus();
+        const result = await dispatch(sendOtpThunk({ phone: `${COUNTRY_CODE}${mobile}`, purpose: otpFlow }));
+        if (sendOtpThunk.fulfilled.match(result)) {
+            router.setParams({ otpToken: result.payload.otp_token });
+            inputs.current[0]?.focus();
+        }
     };
 
     return (

@@ -652,6 +652,10 @@ export default function Home() {
         } catch (error) {
             console.log('❌ [HOME] Failed to fetch backend projects:', error);
             
+            if (error?.response?.status === 401 || error?.status === 401) {
+                return [];
+            }
+
             // Show user-friendly error message
             const errorMessage = error.userMessage || 
                 error.message || 
