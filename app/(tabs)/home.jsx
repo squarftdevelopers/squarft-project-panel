@@ -48,6 +48,14 @@ const INVENTORY_TABS = [
 const STATUS_OPTIONS = ["Available", "Booked", "Sold"];
 
 const PIPELINE_STAGE_META = {
+    pending_verification: {
+        label: "Under Admin Review",
+        sublabel: "Project submitted directly for admin verification",
+        badgeBg: "#FFF7ED",
+        badgeText: "#C2410C",
+        badgeBorder: "#FED7AA",
+        icon: "shield-checkmark-outline",
+    },
     new_lead: {
         label: "Officer Assigned",
         sublabel: "Pending field officer acceptance & initial contact",
@@ -1276,6 +1284,7 @@ export default function Home() {
         approvalStatus: p.overall_approval_status,
         leadStage: p.lead_stage,
         onboardingProgress: p.onboarding_progress,
+        usesFieldOfficerPipeline: p.creator_role === "field_officer",
     }));
     const hasProjects = projectOptions.length > 0;
 
@@ -1523,7 +1532,9 @@ export default function Home() {
                         <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             {projectOptions.map((project) => {
                                 const isSelected = project.id === selectedProjectId;
-                                const stageKey = project.leadStage || (project.status === "active" ? "project_live" : "new_lead");
+                                const stageKey = project.usesFieldOfficerPipeline
+                                    ? (project.leadStage || (project.status === "active" ? "project_live" : "new_lead"))
+                                    : (["active", "published"].includes(project.status) ? "project_live" : (project.status === "rejected" ? "rejected" : "pending_verification"));
                                 const meta = PIPELINE_STAGE_META[stageKey] || PIPELINE_STAGE_META.new_lead;
 
                                 return (
@@ -1570,7 +1581,7 @@ export default function Home() {
                     overflow: isProjectDropdownOpen || activeTab !== "Overview" ? "visible" : "hidden",
                     position: "relative",
                     zIndex: isProjectDropdownOpen ? DROPDOWN_LAYER : 1,
-                    elevation: isProjectDropdownOpen ? DROPDOWN_LAYER : 1,
+                    elevation: 0,
                 }}
             >
                 <Animated.View
@@ -1765,7 +1776,7 @@ export default function Home() {
                         opacity: compactHeaderOpacity,
                         transform: [{ translateY: compactHeaderTranslateY }],
                         zIndex: isProjectDropdownOpen ? DROPDOWN_LAYER : 10,
-                        elevation: isProjectDropdownOpen ? DROPDOWN_LAYER : 10,
+                        elevation: 0,
                     }}
                 >
                     <View
@@ -1773,7 +1784,7 @@ export default function Home() {
                             paddingTop: Math.max(insets.top, 20) + 10,
                             position: "relative",
                             zIndex: isProjectDropdownOpen ? DROPDOWN_LAYER : 10,
-                            elevation: isProjectDropdownOpen ? DROPDOWN_LAYER : 10,
+                            elevation: 0,
                         }}
                         className="bg-white px-5 pb-4"
                     >
@@ -2065,7 +2076,12 @@ export default function Home() {
                                     {/* Project Approval & Pipeline Status */}
                                     {(() => {
                                         const currentProject = projectOptions.find(p => p.id === selectedProjectId);
-                                        const stageKey = apiPipeline?.stage || currentProject?.leadStage || (currentProject?.status === 'active' ? 'project_live' : 'new_lead');
+                                        const usesFieldOfficerPipeline = apiPipeline?.uses_field_officer_pipeline
+                                            ?? currentProject?.usesFieldOfficerPipeline
+                                            ?? false;
+                                        const stageKey = usesFieldOfficerPipeline
+                                            ? (apiPipeline?.stage || currentProject?.leadStage || (currentProject?.status === 'active' ? 'project_live' : 'new_lead'))
+                                            : (apiPipeline?.stage || (["active", "published"].includes(currentProject?.status) ? 'project_live' : (currentProject?.status === 'rejected' ? 'rejected' : 'pending_verification')));
                                         const meta = PIPELINE_STAGE_META[stageKey] || PIPELINE_STAGE_META.new_lead;
                                         const progress = apiPipeline?.onboarding_progress !== undefined ? apiPipeline.onboarding_progress : (currentProject?.onboardingProgress !== undefined ? currentProject.onboardingProgress : (stageKey === 'project_live' ? 100 : 15));
 
@@ -2096,7 +2112,7 @@ export default function Home() {
                                                 <Text style={{ fontSize: 10, fontFamily: "Lato", color: "#64748B", marginTop: 3 }}>
                                                     {meta.sublabel}
                                                 </Text>
-                                                {apiPipeline?.assigned_officer?.name ? (
+                                                {usesFieldOfficerPipeline && apiPipeline?.assigned_officer?.name ? (
                                                     <Text style={{ fontSize: 10, fontFamily: "Lato", color: "#334155", marginTop: 4 }}>
                                                         Assigned Officer: {apiPipeline.assigned_officer.name} {apiPipeline.assigned_officer.phone ? `(${apiPipeline.assigned_officer.phone})` : ""}
                                                     </Text>
