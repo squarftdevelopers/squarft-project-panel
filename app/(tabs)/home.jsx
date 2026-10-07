@@ -1359,28 +1359,76 @@ export default function Home() {
 
     // Convert API range-based grouping { ranges: [{range_name, properties}] }
     // into the sections shape the existing renderers already understand
-    const toSectionsShape = (apiType) => {
+    const toSectionsShape = (apiType, inventoryTypeValue) => {
         if (!apiType) return { sections: [] };
+        const mapProperty = (p) => ({
+            id: p.unit_code || p.id,
+            title: p.display_title || p.title,
+            area: p.area,
+            area_sqft: p.area_sqft,
+            price: p.price_display || p.price,
+            status: p.status_label || p.status,
+            configuration: p.configuration,
+            _unitId: p.id,
+        });
+
         if (apiType.grouping === 'range') {
+            // The backend groups plots by range, while the Plot renderer
+            // consumes stack -> level -> cards. Preserve every API range as a
+            // stack with one level so field-officer-created projects render
+            // exactly like projects created from the Project Panel form.
+            if (inventoryTypeValue === 'plot') {
+                return {
+                    stacks: (apiType.ranges || []).map((range, rangeIndex) => ({
+                        key: range.range_name || `stack-${rangeIndex + 1}`,
+                        label: range.range_name || `Range ${String.fromCharCode(65 + rangeIndex)}`,
+                        levels: [{
+                            level: '1',
+                            cards: (range.properties || []).map((property) => ({
+                                unit: property.unit_code || property.id,
+                                meta: property.display_title || property.title || 'Plot',
+                                price: property.price_display || property.price,
+                                status: property.status_label || property.status,
+                                area: property.area,
+                                area_sqft: property.area_sqft,
+                                configuration: property.configuration,
+                                _unitId: property.id,
+                            })),
+                        }],
+                    })),
+                    summary: apiType.summary,
+                };
+            }
+
             return {
                 sections: (apiType.ranges || []).map((r) => ({
                     id: r.range_name,
                     name: r.range_name,
-                    units: (r.properties || []).map((p) => ({
-                        id: p.unit_code || p.id,
-                        title: p.display_title || p.title,
-                        area: p.area,
-                        area_sqft: p.area_sqft,
-                        price: p.price_display || p.price,
-                        status: p.status_label || p.status,
-                        configuration: p.configuration,
-                        _unitId: p.id, // real UUID for unit detail API
-                    })),
+                    units: (r.properties || []).map(mapProperty),
                 })),
                 summary: apiType.summary,
             };
         }
         if (apiType.grouping === 'tower_floor') {
+            // Apartments use the dedicated tower selector. Shop, showroom and
+            // office inventory use the same backend grouping, but their UI
+            // renderer consumes sections. Flatten each tower/floor into a
+            // section so units created through any onboarding path remain
+            // visible in the Project Panel app.
+            if (inventoryTypeValue !== 'apartment') {
+                return {
+                    sections: (apiType.towers || []).flatMap((tower, towerIndex) =>
+                        (tower.floors || []).map((floor, floorIndex) => ({
+                            id: `${tower.tower_name || `tower-${towerIndex + 1}`}-${floor.floor_name || `floor-${floorIndex + 1}`}`,
+                            name: floor.floor_name || tower.tower_name,
+                            rowLabel: floor.floor_name || tower.tower_name,
+                            units: (floor.properties || []).map(mapProperty),
+                        })),
+                    ),
+                    summary: apiType.summary,
+                };
+            }
+
             return {
                 towers: (apiType.towers || []).map((t) => ({
                     key: t.tower_name,
@@ -1388,16 +1436,7 @@ export default function Home() {
                     sections: (t.floors || []).map((f) => ({
                         id: f.floor_name,
                         rowLabel: f.floor_name,
-                        units: (f.properties || []).map((p) => ({
-                            id: p.unit_code || p.id,
-                            title: p.display_title || p.title,
-                            area: p.area,
-                            area_sqft: p.area_sqft,
-                            price: p.price_display || p.price,
-                            status: p.status_label || p.status,
-                            configuration: p.configuration,
-                            _unitId: p.id, // real UUID for unit detail API
-                        })),
+                        units: (f.properties || []).map(mapProperty),
                     })),
                 })),
                 summary: apiType.summary,
@@ -1411,7 +1450,7 @@ export default function Home() {
         if (apiInventoryRaw) {
             const result = {};
             Object.keys(apiInventoryRaw).forEach((type) => {
-                result[type] = toSectionsShape(apiInventoryRaw[type]);
+                result[type] = toSectionsShape(apiInventoryRaw[type], type);
             });
             return result;
         }
