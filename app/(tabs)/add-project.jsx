@@ -648,6 +648,12 @@ export default function AddProject() {
             errors.location = 'Location is required';
         }
 
+        if (values.latitude == null || values.longitude == null || values.latitude === '' || values.longitude === '' ||
+            !Number.isFinite(Number(values.latitude)) || !Number.isFinite(Number(values.longitude)) ||
+            Math.abs(Number(values.latitude)) > 90 || Math.abs(Number(values.longitude)) > 180) {
+            errors.location = 'Select and confirm the project location on the map';
+        }
+
         if (!values.city || values.city.trim().length === 0) {
             errors.city = 'City is required';
         }
@@ -708,12 +714,28 @@ export default function AddProject() {
             }
             setStep1Errors({});
 
-            // If draft already created (user went back), skip re-creating
+            // A resumed draft must persist a newly confirmed map pin as well.
             if (projectId) {
-                if (saveOnly) {
-                    alert('This step is already saved.');
-                } else {
-                    dispatch(setStep(2));
+                try {
+                    setIsSubmitting(true);
+                    await projectFormApi.updateBasicDetails(projectId, {
+                        name: step1.projectName,
+                        location: step1.location,
+                        city: step1.city,
+                        state: step1.state,
+                        pincode: step1.pincode,
+                        latitude: step1.latitude,
+                        longitude: step1.longitude,
+                        sales_officer_name: step1.salesOfficerName,
+                        sales_officer_contact: step1.salesOfficerContact,
+                        responsible_person_name: step1.responsiblePersonName,
+                        responsible_person_contact: step1.responsiblePersonContact,
+                    });
+                    await finishStep(2);
+                } catch (error) {
+                    setStep1Errors({ api: error.response?.data?.message || 'Failed to save basic details. Please try again.' });
+                } finally {
+                    setIsSubmitting(false);
                 }
                 return;
             }
@@ -1460,7 +1482,11 @@ function Step1({ errors = {}, setErrors }) {
                         placeholder="Address & Landmark"
                         placeholderTextColor="#9CA3AF"
                         value={step1.location}
-                        onChangeText={(v) => updateField('location', v)}
+                        onChangeText={(v) => {
+                            updateField('location', v);
+                            updateField('latitude', null);
+                            updateField('longitude', null);
+                        }}
                         style={{ paddingVertical: 0, textAlignVertical: 'center', includeFontPadding: false }}
                     />
                     <TouchableOpacity
