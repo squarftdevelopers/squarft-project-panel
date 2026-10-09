@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Image, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchDeveloperKyc } from '../store/slices/authSlice';
+import { fetchDeveloperKyc, logout } from '../store/slices/authSlice';
+import { clearProjects } from '../store/slices/projectsSlice';
+import { resetInventory } from '../store/slices/inventorySlice';
+import { clearNotifications } from '../store/slices/notificationSlice';
+import { authService } from '../services/authService';
 
 export default function KycModal() {
     const insets = useSafeAreaInsets();
@@ -68,6 +72,15 @@ export default function KycModal() {
         router.push('/(screens)/kyc');
     };
 
+    const handleLogout = async () => {
+        await authService.logout();
+        dispatch(logout());
+        dispatch(clearProjects());
+        dispatch(resetInventory());
+        dispatch(clearNotifications());
+        router.replace('/(auth)/login');
+    };
+
     return (
         <Modal
             visible={visible}
@@ -98,7 +111,7 @@ export default function KycModal() {
                                     : 'Complete your KYC to start uploading projects and managing your inventory.'}
                         </Text>
                     </View>
-                    <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 38 : 28) }]}>
+                    <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 4) }]}>
                         <Pressable
                             style={[styles.button, rejected && styles.rejectedButton, actionLoading && styles.disabled]}
                             onPress={handleAction}
@@ -110,6 +123,9 @@ export default function KycModal() {
                                     {checkingStatus ? 'Checking Status' : submitted ? 'Refresh Status' : rejected ? 'Re-upload Documents' : 'Complete KYC'}
                                 </Text>
                             )}
+                        </Pressable>
+                        <Pressable style={styles.logoutButton} onPress={handleLogout} hitSlop={8}>
+                            <Text style={styles.logoutText}>Log out</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -135,4 +151,6 @@ const styles = StyleSheet.create({
     rejectedButton: { backgroundColor: '#DC2626', shadowColor: '#DC2626' },
     disabled: { opacity: 0.85 },
     buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', fontFamily: 'Lato-Bold' },
+    logoutButton: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 3 },
+    logoutText: { color: '#DC2626', fontSize: 12, fontWeight: '600', fontFamily: 'Lato-Bold' },
 });
