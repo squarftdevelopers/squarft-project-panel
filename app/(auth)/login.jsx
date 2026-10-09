@@ -50,18 +50,7 @@ export default function Login() {
         }
 
         const errorMessage = String(result.payload || 'Failed to send OTP. Please try again.');
-        if (errorMessage.toLowerCase().includes('no account found')) {
-            Alert.alert(
-                'Account Not Found',
-                'No account found with this phone number. Would you like to register?',
-                [
-                    { text: 'Register', onPress: () => router.replace('/register') },
-                    { text: 'Cancel', style: 'cancel' },
-                ]
-            );
-        } else {
-            Alert.alert('Could Not Send OTP', errorMessage);
-        }
+        Alert.alert('Could Not Send OTP', errorMessage);
     };
 
     return (
