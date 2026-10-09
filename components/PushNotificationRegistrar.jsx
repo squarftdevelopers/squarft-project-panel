@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import { useDispatch, useSelector } from "react-redux";
 import { addNotification, replaceNotifications } from "../store/slices/notificationSlice";
@@ -69,7 +70,7 @@ export default function PushNotificationRegistrar() {
     useEffect(() => {
         if (!isLoggedIn || !token || !notificationsHydrated) return;
 
-        notificationApi.list()
+        const syncNotificationBadge = () => notificationApi.list(1, 100)
             .then((response) => {
                 const list = response.data?.data || [];
                 dispatch(replaceNotifications(list.map(mapApiNotification)));
@@ -77,6 +78,11 @@ export default function PushNotificationRegistrar() {
             .catch((error) => {
                 console.warn("[PUSH] Notification badge sync failed:", error.message);
             });
+        syncNotificationBadge();
+        const appState = AppState.addEventListener("change", (state) => {
+            if (state === "active") syncNotificationBadge();
+        });
+        return () => appState.remove();
     }, [dispatch, isLoggedIn, notificationsHydrated, token]);
 
     useEffect(() => {
