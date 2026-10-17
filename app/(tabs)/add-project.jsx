@@ -192,6 +192,7 @@ export default function AddProject() {
                 salesOfficerContact: s1.sales_officer_contact || '',
                 responsiblePersonName: s1.responsible_person_name || '',
                 responsiblePersonContact: s1.responsible_person_contact || '',
+                otherNumber: s1.other_number || '',
             }));
 
             // Step 2 — deduplicated property types from variants
@@ -626,6 +627,7 @@ export default function AddProject() {
                 salesOfficerContact: draft.sales_officer_contact || '',
                 responsiblePersonName: draft.responsible_person_name || '',
                 responsiblePersonContact: draft.responsible_person_contact || '',
+                otherNumber: draft.other_number || '',
             }));
             const lastDone = draft.last_completed_step || 1;
             setTimeout(() => dispatch(setStep(Math.min(lastDone + 1, 6))), 100);
@@ -1642,6 +1644,13 @@ function Step1({ errors = {}, setErrors }) {
                 {errors.responsiblePersonContact && (
                     <Text className="text-[11px] text-red-500 mt-1">{errors.responsiblePersonContact}</Text>
                 )}
+                {step1.otherNumber ? (
+                    <View className="mt-4">
+                        <Text className="text-xs text-gray-500">Other Number</Text>
+                        <Text className="mt-1 text-sm text-gray-800">{step1.otherNumber}</Text>
+                    </View>
+                ) : null}
+
             </View>
             
         </View>
