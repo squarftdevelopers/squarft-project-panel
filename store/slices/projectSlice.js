@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
     currentStep: 1,
+    furthestStep: 1,
     projectId: null, // set after API creates the draft
     step1: {
         projectName: '',
@@ -102,6 +103,7 @@ const projectSlice = createSlice({
     initialState,
     reducers: {
         setStep: (state, action) => {
+            state.furthestStep = Math.max(state.furthestStep || state.currentStep || 1, action.payload);
             state.currentStep = action.payload;
         },
         updateStep1: (state, action) => {

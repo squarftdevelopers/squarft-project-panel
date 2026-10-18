@@ -1,3 +1,4 @@
+import MapWithLayers from "./MapWithLayers";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, TextInput, TouchableOpacity, Platform, Modal, ActivityIndicator, Alert, Keyboard, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -321,7 +322,7 @@ export default function LocationMapPicker({ visible, initialAddress, onClose, on
                 insets instead of falling back to 0 and sitting under the notch. */}
             <SafeAreaProvider>
             <View className="flex-1 bg-white">
-                <MapView
+                <MapWithLayers component={MapView} layersTop={160}
                     ref={mapRef}
                     provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                     style={{ flex: 1 }}

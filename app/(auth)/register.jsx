@@ -203,7 +203,7 @@ export default function Register() {
                             <TextInput
                                 value={mobile}
                                 onChangeText={(val) => dispatch(setMobile(val.replace(/[^0-9]/g, '').slice(0, 10)))}
-                                placeholder="Phone Number"
+                                placeholder="eg. 7867986757"
                                 placeholderTextColor="#aaa"
                                 keyboardType="phone-pad"
                                 maxLength={10}

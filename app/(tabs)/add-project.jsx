@@ -1,5 +1,7 @@
+import { pickUpload } from "../../utils/pickUpload";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
+    BackHandler,
     View,
     Text,
     ScrollView,
@@ -17,8 +19,7 @@ import {
     FlatList,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
+import { router, useFocusEffect } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -134,7 +135,7 @@ const OWNERSHIP_TYPES = [
 
 export default function AddProject() {
     const dispatch = useDispatch();
-    const { currentStep, step1, step2, step3, step4, step5, step6 } = useSelector((state) => state.project);
+    const { currentStep, furthestStep = currentStep, step1, step2, step3, step4, step5, step6 } = useSelector((state) => state.project);
     const projectId = useSelector((state) => state.project.projectId);
     const scrollRef = useRef(null);
     const [step1Errors, setStep1Errors] = useState({});
@@ -1212,13 +1213,30 @@ export default function AddProject() {
         return false;
     };
 
-    const handleBack = () => {
-        if (currentStep > 1) {
-            dispatch(setStep(currentStep - 1));
-        } else {
-            router.back();
-        }
+    const handleStepNavigation = (target) => {
+        if (isSubmitting || target < 1 || target > furthestStep || target === currentStep) return;
+        Keyboard.dismiss();
+        setStep1Errors({});
+        dispatch(setStep(target));
     };
+
+    const handleBack = () => {
+        if (isSubmitting) return;
+        if (currentStep > 1) handleStepNavigation(currentStep - 1);
+        else router.back();
+    };
+
+    useFocusEffect(useCallback(() => {
+        const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (isSubmitting) return true;
+            if (currentStep <= 1) return false;
+            Keyboard.dismiss();
+            setStep1Errors({});
+            dispatch(setStep(currentStep - 1));
+            return true;
+        });
+        return () => subscription.remove();
+    }, [currentStep, dispatch, isSubmitting]));
 
     return (
         <>
@@ -1242,7 +1260,7 @@ export default function AddProject() {
                         />
 
                         <View className="flex-row items-center mt-6 justify-between mb-8">
-                            <TouchableOpacity onPress={handleBack} className="p-1">
+                            <TouchableOpacity onPress={handleBack} disabled={isSubmitting} className="p-1">
                                 <Ionicons name="arrow-back" size={20} color="white" />
                             </TouchableOpacity>
                             <Text className="text-white text-base font-lato-bold">Add Project</Text>
@@ -1267,17 +1285,18 @@ export default function AddProject() {
                             </View>
                         </View>
 
-                        {/* Step Indicator — a completed (earlier) step can be tapped to
-                            jump straight back to it; the current/upcoming steps can't,
-                            since those still need their own data filled in first. */}
+                        {/* Previously reached steps remain available in either direction. */}
                         <View className="flex-row justify-between items-start mt-8">
                             {steps.map((step) => {
                                 const isPast = step.id < currentStep;
                                 return (
                                     <TouchableOpacity
                                         key={step.id}
-                                        disabled={!isPast}
-                                        onPress={() => dispatch(setStep(step.id))}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Go to ${step.title}`}
+                                        accessibilityState={{ selected: currentStep === step.id, disabled: isSubmitting || step.id > furthestStep || step.id === currentStep }}
+                                        disabled={isSubmitting || step.id > furthestStep || step.id === currentStep}
+                                        onPress={() => handleStepNavigation(step.id)}
                                         activeOpacity={isPast ? 0.6 : 1}
                                         className="items-center"
                                         style={{ width: (width - 40) / 6 }}
@@ -1591,10 +1610,11 @@ function Step1({ errors = {}, setErrors }) {
             <View>
                 <Text className="text-xs font-lato-bold text-black mb-1.5">Contact No.</Text>
                 <Pressable onPress={() => salesContactRef.current?.focus()} className="flex-row bg-white border border-gray-200 rounded-xl px-4 h-12 items-center">
+                    <Text className="mr-2 border-r border-gray-200 pr-3 text-[13px] font-lato-medium text-gray-700">+91</Text>
                     <TextInput
                         ref={salesContactRef}
                         className="flex-1 text-[13px] text-gray-800 font-lato-medium"
-                        placeholder="eg. 8120180101"
+                        placeholder="eg. 7867986757"
                         placeholderTextColor="#9CA3AF"
                         keyboardType="phone-pad"
                         value={step1.salesOfficerContact}
@@ -1630,10 +1650,11 @@ function Step1({ errors = {}, setErrors }) {
             <View>
                 <Text className="text-xs font-lato-bold text-black mb-1.5">Contact No.</Text>
                 <Pressable onPress={() => respContactRef.current?.focus()} className="flex-row bg-white border border-gray-200 rounded-xl px-4 h-12 items-center">
+                    <Text className="mr-2 border-r border-gray-200 pr-3 text-[13px] font-lato-medium text-gray-700">+91</Text>
                     <TextInput
                         ref={respContactRef}
                         className="flex-1 text-[13px] text-gray-800 font-lato-medium"
-                        placeholder="eg. 8120180101"
+                        placeholder="eg. 7867986757"
                         placeholderTextColor="#9CA3AF"
                         keyboardType="phone-pad"
                         value={step1.responsiblePersonContact}
@@ -2196,7 +2217,7 @@ function Step3() {
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
+        const result = await pickUpload({
             mediaTypes: ['images'],
             allowsMultipleSelection: true,
             selectionLimit: 5 - currentImages.length,
@@ -3601,10 +3622,10 @@ const DocumentUploadButton = ({ label, documents, onDocumentsPicked }) => {
             return;
         }
 
-        const result = await DocumentPicker.getDocumentAsync({
+        const result = await pickUpload({
             type: "*/*",
             multiple: true,
-        });
+        }, true);
         if (result.canceled) return;
 
         setIsUploading(true);
@@ -4064,7 +4085,7 @@ function Step6() {
     };
 
     const pickImages = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
+        const result = await pickUpload({
             mediaTypes: ['images'],
             allowsMultipleSelection: true,
             quality: 0.8,
@@ -4080,10 +4101,10 @@ function Step6() {
     };
 
     const pickDocuments = async () => {
-        const result = await DocumentPicker.getDocumentAsync({
+        const result = await pickUpload({
             type: "*/*",
             multiple: true,
-        });
+        }, true);
 
         if (!result.canceled) {
             updateField('documents', [...step6.documents, ...result.assets]);

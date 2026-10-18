@@ -83,7 +83,7 @@ export default function Login() {
                             <TextInput
                                 value={mobile}
                                 onChangeText={(val) => dispatch(setMobile(cleanPhoneNumber(val)))}
-                                placeholder="Phone Number"
+                                placeholder="eg. 7867986757"
                                 placeholderTextColor="#aaa"
                                 keyboardType="phone-pad"
                                 maxLength={10}

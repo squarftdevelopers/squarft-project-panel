@@ -1,3 +1,4 @@
+import { pickUpload } from "../../utils/pickUpload";
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -119,6 +120,11 @@ export default function KycScreen() {
         setAadharNumber(kyc.aadhar_number || '');
         setPanNumber(kyc.pan_number || '');
     }, [kyc]);
+
+  const pickIdentityImage = async (setter) => {
+    const result = await pickUpload({ allowsEditing: true, quality: 0.8 });
+    if (!result.canceled && result.assets?.[0]) setter(result.assets[0]);
+  };
 
     const pickImage = async (setter, useCamera = false) => {
         if (submittingRef.current) return;
@@ -352,7 +358,7 @@ export default function KycScreen() {
                         value={aadharFront}
                         existingUrl={kyc?.aadhar_front_url}
                         icon="cloud-upload-outline"
-                        onPress={() => pickImage(setAadharFront)}
+                        onPress={() => pickIdentityImage(setAadharFront)}
                         onRemove={() => setAadharFront(null)}
                         disabled={submitting || isApproved}
                     />
@@ -362,7 +368,7 @@ export default function KycScreen() {
                         value={aadharBack}
                         existingUrl={kyc?.aadhar_back_url}
                         icon="cloud-upload-outline"
-                        onPress={() => pickImage(setAadharBack)}
+                        onPress={() => pickIdentityImage(setAadharBack)}
                         onRemove={() => setAadharBack(null)}
                         disabled={submitting || isApproved}
                     />
@@ -372,7 +378,7 @@ export default function KycScreen() {
                         value={panCard}
                         existingUrl={kyc?.pan_card_url}
                         icon="card-account-details-outline"
-                        onPress={() => pickImage(setPanCard)}
+                        onPress={() => pickIdentityImage(setPanCard)}
                         onRemove={() => setPanCard(null)}
                         disabled={submitting || isApproved}
                     />
