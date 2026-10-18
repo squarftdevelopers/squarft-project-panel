@@ -45,7 +45,7 @@ const INVENTORY_TABS = [
     { key: "showroom", label: "Showroom" },
     { key: "office", label: "Office" },
 ];
-const STATUS_OPTIONS = ["Available", "Booked", "Sold"];
+const STATUS_OPTIONS = ["Available"];
 
 const PIPELINE_STAGE_META = {
     pending_verification: {
@@ -268,6 +268,7 @@ export default function Home() {
         switch (status) {
             case "Available":
                 return "bg-emerald-100 text-emerald-600";
+            case "Locked":
             case "Booked":
                 return "bg-amber-100 text-amber-600";
             case "Sold":
@@ -455,6 +456,7 @@ export default function Home() {
         setInventoryEditTarget(target);
         setEditPrice(unit.price || unit.dealValue || unit.amount || "");
         setEditArea(unit.area || "");
+        if (String(unit.status).toLowerCase() !== "available") return;
         setEditStatus(unit.status || "Available");
         setIsStatusDropdownOpen(false);
         setIsInventoryEditVisible(true);
@@ -917,7 +919,7 @@ export default function Home() {
                         key={item.key || `${gridKey}-${index}`}
                         onPress={() => openInventoryDetail(item.raw, item.context)}
                         activeOpacity={0.9}
-                        className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-2.5 overflow-hidden"
+                        className={`rounded-2xl border shadow-sm mb-2.5 overflow-hidden ${item.status === "Sold" ? "bg-red-100 border-red-200" : ["Booked", "Locked"].includes(item.status) ? "bg-amber-100 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}
                         style={{
                             width: "31.5%",
                             marginRight: isRowEnd ? 0 : "2.75%",
@@ -942,7 +944,7 @@ export default function Home() {
                                     </Text>
                                 </View>
                                 <View className={`px-1 py-0.5 rounded-full ${statusStyle}`}>
-                                    <Text className="text-[7px] font-lato-bold uppercase">{item.status}</Text>
+                                    <Text className="text-[7px] font-lato-bold uppercase">{["Booked", "Locked"].includes(item.status) ? "Locked" : item.status}</Text>
                                 </View>
                             </View>
 
@@ -1216,7 +1218,7 @@ export default function Home() {
                         footerStatus: isBooked ? dealSummary.status_label : u.status_label,
                         progress: dealSummary?.payment_progress_percent ?? 0,
                         showDealSummary: isBooked,
-                        showFollowUps: !isBooked,
+                        showFollowUps: String(u.status).toLowerCase() === 'available',
                         // payment schedule
                         payment_schedule: dealSummary?.payment_schedule || [],
                         payment_progress_percent: dealSummary?.payment_progress_percent ?? 0,
@@ -1232,7 +1234,7 @@ export default function Home() {
         }
 
         // Fallback: _unitId missing or API failed — show what we have from the unit itself
-        const isBookedOrSoldUnit = unit.status === "Booked" || unit.status === "Sold";
+        const isBookedOrSoldUnit = ["Booked", "Locked", "Sold"].includes(unit.status);
 
         setSelectedDeal({
             ...unit,
@@ -2193,7 +2195,7 @@ export default function Home() {
                                             <Text className="text-[#1A1A1A] text-[11px] font-lato-bold">{displayUnits.sold || 0}</Text>
                                         </View>
                                         <View className="flex-1 bg-[#FFF8EA] border border-[#FDECC8] rounded-lg py-1.5 items-center mr-1.5 min-w-0">
-                                            <Text className="text-[#D98A1B] text-[8px] font-lato-bold uppercase">Booked</Text>
+                                            <Text className="text-[#D98A1B] text-[8px] font-lato-bold uppercase">Locked</Text>
                                             <Text className="text-[#1A1A1A] text-[11px] font-lato-bold">{displayUnits.booked || 0}</Text>
                                         </View>
                                     </View>
