@@ -94,15 +94,15 @@ export default function DealDetails() {
     };
     const [collectingId, setCollectingId] = useState(null);
     const collectionLock = useRef(false);
-    const requestCollection = (payment) => {
-        if (collectionLock.current || payment.is_token || !['upcoming','overdue'].includes(payment.status)) return;
+    const requestCollection = (payment, tokenOnly = false) => {
+        if (collectionLock.current || Boolean(payment.is_token) !== tokenOnly || !['upcoming','overdue'].includes(payment.status)) return;
         Alert.alert('Collect payment?', `Collect ${formatValue(payment.amount)} for "${payment.title}"? This will mark the milestone as paid.`, [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Collect', onPress: async () => {
                 if (collectionLock.current) return;
                 collectionLock.current = true; setCollectingId(payment.id);
                 try {
-                    const response = await api.post(`/api/project-panel/owner-deals/${id}/payments/${payment.id}/collect`);
+                    const response = await api.post(`/api/project-panel/owner-deals/${id}/payments/${payment.id}/${tokenOnly ? 'collect-token' : 'collect'}`);
                     await onRefresh();
                     Alert.alert('Payment collected', response.data.message || 'Payment collected successfully.');
                 } catch(e) { Alert.alert('Unable to collect', e.response?.data?.message || 'Please try again.'); }
@@ -136,10 +136,10 @@ export default function DealDetails() {
                 currentStageIndex={0}
                 activity={{ timeline: deal.timeline, meetings: deal.meetings, notes: deal.notes }}
             />;
-            case "Token": return <TabPayments payments={(payments).filter((payment) => payment.is_token || /token/i.test(payment.title || payment.milestone || ''))} />;
+            case "Token": return <TabPayments payments={payments.filter(payment => payment.is_token || /token/i.test(payment.title || payment.milestone || ''))} onCollect={payment => requestCollection(payment, true)} collectingId={collectingId} tokenOnly />;
             case "Payment Schedule": return <TabPayments payments={payments} onCollect={requestCollection} collectingId={collectingId} />;
             case "Payment History": return <TabPayments payments={(payments).filter((payment) => ['paid', 'completed', 'partial'].includes(String(payment.status).toLowerCase()))} />;
-            case "Documents": return <TabDocuments documents={deal.documents ?? []}  />;
+            case "Documents": return <TabDocuments documents={deal.documents ?? []} dealId={id} onUploaded={onRefresh} />;
             default: return <TabOverview deal={deal} />;
         }
     })();

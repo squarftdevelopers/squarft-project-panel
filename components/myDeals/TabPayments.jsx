@@ -37,7 +37,7 @@ const statusLabel = (status) => {
     return map[status] ?? String(status || 'Upcoming').replace(/_/g, ' ');
 };
 
-const TabPayments = memo(function TabPayments({ payments = [], onCollect, collectingId }) {
+const TabPayments = memo(function TabPayments({ payments = [], onCollect, collectingId, tokenOnly = false }) {
     const [paymentFilter, setPaymentFilter] = useState("All");
     const hasGeneratedPayments = payments.some((payment) => payment.is_generated);
 
@@ -99,7 +99,7 @@ const TabPayments = memo(function TabPayments({ payments = [], onCollect, collec
                                     <View className={`px-2 py-[2px] rounded-[6px] ${styles.badgeBg}`}>
                                         <Text className={`text-[10px] font-manrope-bold ${styles.badgeText}`}>{statusLabel(item.status)}</Text>
                                     </View>
-                                    {!!onCollect && !item.is_token && ['upcoming','overdue'].includes(item.status) && <Pressable
+                                    {!!onCollect && Boolean(item.is_token) === tokenOnly && ['upcoming','overdue'].includes(item.status) && <Pressable
                                         accessibilityRole="button" disabled={!!collectingId} onPress={() => onCollect(item)}
                                         className={`mt-2 rounded-lg bg-[#22A559] px-3 py-2 ${collectingId ? 'opacity-50' : ''}`}>
                                         {collectingId === item.id ? <ActivityIndicator size="small" color="white" /> : <Text className="text-[11px] font-manrope-bold text-white">Collect</Text>}
