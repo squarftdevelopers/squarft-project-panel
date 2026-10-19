@@ -115,6 +115,11 @@ function SessionExpiryGuard() {
 export default function RootLayout() {
     const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
     const [fontsLoaded] = useFonts({
+        Manrope_500Medium: require("../assets/fonts/deals/Manrope_500Medium.ttf"),
+        Manrope_700Bold: require("../assets/fonts/deals/Manrope_700Bold.ttf"),
+        Inter_500Medium: require("../assets/fonts/deals/Inter_500Medium.ttf"),
+        Inter_600SemiBold: require("../assets/fonts/deals/Inter_600SemiBold.ttf"),
+        Inter_700Bold: require("../assets/fonts/deals/Inter_700Bold.ttf"),
         Lato_400Regular,
         Lato_700Bold,
         Lato_300Light,

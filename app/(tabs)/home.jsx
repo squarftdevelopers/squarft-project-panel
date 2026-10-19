@@ -1,3 +1,4 @@
+import DealCard from '../../components/myDeals/DealCard';
 import { Text, View, ScrollView, Image, TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Animated, Easing, ActivityIndicator, Alert, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -2478,6 +2479,12 @@ export default function Home() {
                                 const propertyTitle = deal.unit_title || deal.display_title || deal.property_title || deal.property?.title || 'Property Unit';
                                 const dealStatus = deal.deal_status || deal.status;
 
+                                if (deal.canonical_deal_id) return <DealCard
+                                    key={dealId}
+                                    deal={{ ...deal, property_title: propertyTitle, city: deal.city || '', area: '', status: dealStatus, total_value: totalAmount, paid_so_far: paidAmount }}
+                                    animKey={deal.updated_at}
+                                    onPress={() => router.push({ pathname: "/(screens)/project-deal", params: { id: deal.canonical_deal_id } })}
+                                />;
                                 return (
                                     <TouchableOpacity
                                         key={dealId || Math.random().toString()}

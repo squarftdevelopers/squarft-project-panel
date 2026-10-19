@@ -10,6 +10,11 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        "manrope-medium": ["Manrope_500Medium"],
+        "manrope-bold": ["Manrope_700Bold"],
+        "inter-medium": ["Inter_500Medium"],
+        "inter-semibold": ["Inter_600SemiBold"],
+        "inter-bold": ["Inter_700Bold"],
         lato: ["Lato_400Regular"],
         "lato-light": ["Lato_300Light"],
         "lato-bold": ["Lato_700Bold"],
