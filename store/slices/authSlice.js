@@ -390,11 +390,9 @@ const authSlice = createSlice({
                 }
                 state.kycLoading = false;
                 state.kycError = action.payload?.message || action.error?.message;
-                // A 404/missing KYC response must not leave an approved KYC
-                // object from a previously logged-in account in memory.
-                state.kyc = null;
-                state.kycStatus = null;
-                state.isKycCompleted = false;
+                // Missing KYC is a successful null response from getMyKyc.
+                // A failed refresh must preserve the last confirmed status;
+                // it is not evidence that KYC is missing or unapproved.
                 state.kycInitialized = true;
             })
             .addCase(uploadDeveloperKyc.pending, (state) => {

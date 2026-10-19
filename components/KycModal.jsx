@@ -19,6 +19,7 @@ export default function KycModal() {
         token,
         kycInitialized,
         kycLoading,
+        kycError,
         kyc,
         kycStatus,
     } = useSelector((state) => state.auth);
@@ -34,7 +35,7 @@ export default function KycModal() {
     // KYC document screen is outside that layout, so route-name filtering here
     // can only create false negatives during Expo Router cold-start hydration.
     const checkingStatus = !kycInitialized || (kycLoading && !kyc);
-    const visible = authChecked && isLoggedIn && Boolean(token) && (checkingStatus || !approved);
+    const visible = authChecked && isLoggedIn && Boolean(token) && !checkingStatus && !kycError && !approved;
     const actionLoading = checkingStatus || (submitted && (refreshing || kycLoading));
 
     useEffect(() => {
