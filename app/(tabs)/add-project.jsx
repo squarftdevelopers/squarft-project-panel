@@ -19,7 +19,7 @@ import {
     FlatList,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -142,6 +142,8 @@ export default function AddProject() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Drafts modal state
+    const { projectId: notificationProjectId, step: notificationStep } = useLocalSearchParams();
+    const resumedNotificationProject = useRef(null);
     const [draftsVisible, setDraftsVisible] = useState(false);
     const [drafts, setDrafts] = useState([]);
     const [draftsLoading, setDraftsLoading] = useState(false);
@@ -598,7 +600,7 @@ export default function AddProject() {
             }));
 
             // Navigate to resume_at_step from backend
-            const resumeAt = resumeData.resume_at_step || 1;
+            const resumeAt = draft.notificationStep || resumeData.resume_at_step || 1;
 
             // Step 6 — restore already-uploaded media as images array
             const savedMedia = resumeData.step6?.media || [];
@@ -634,6 +636,12 @@ export default function AddProject() {
             setTimeout(() => dispatch(setStep(Math.min(lastDone + 1, 6))), 100);
         }
     };
+
+    useEffect(() => {
+        if (!notificationProjectId || resumedNotificationProject.current === notificationProjectId) return;
+        resumedNotificationProject.current = notificationProjectId;
+        resumeDraft({ id: notificationProjectId, notificationStep: Math.max(1, Math.min(6, Number(notificationStep) || 1)) });
+    }, [notificationProjectId, notificationStep]);
 
     useEffect(() => {
         scrollRef.current?.scrollToPosition?.(0, 0, false);

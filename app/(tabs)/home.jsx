@@ -6,7 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import ProjectDetailModal from "../../components/ProjectDetailModal";
 import Avatar from "../../components/Avatar";
@@ -125,6 +125,7 @@ const PIPELINE_STAGE_META = {
 
 export default function Home() {
     const router = useRouter();
+    const { projectId: notificationProjectId, tab: notificationTab } = useLocalSearchParams();
     const dispatch = useDispatch();
     const projectsData = useSelector((state) => state.projects.projects);
     const notifications = useSelector((state) => state.notifications?.list || []);
@@ -144,6 +145,11 @@ export default function Home() {
     }, [authChecked, isLoggedIn, branchId, authUser?.branch_id, router]);
 
     const [selectedProjectId, setSelectedProjectId] = useState("");
+    useEffect(() => {
+        if (notificationProjectId) setSelectedProjectId(String(notificationProjectId));
+        if (HOME_TABS.includes(notificationTab)) setActiveTab(notificationTab);
+    }, [notificationProjectId, notificationTab]);
+
     const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
     const [isImageLightboxVisible, setIsImageLightboxVisible] = useState(false);
     const [isProjectDetailVisible, setIsProjectDetailVisible] = useState(false);
@@ -287,7 +293,7 @@ export default function Home() {
             console.log('📋 [HOME] projectsList fetched:', list.length, list.map(p => p.name));
             setProjectsList(list);
             if (list.length > 0) {
-                setSelectedProjectId(list[0].id);
+                setSelectedProjectId((current) => current || list[0].id);
             }
         } catch (error) {
             console.error('❌ [HOME] Failed to fetch projects list:', error?.response?.status, error?.message);
@@ -639,7 +645,7 @@ export default function Home() {
             if (list.length > 0) {
                 setBackendProjects(list);
                 setProjectsList(list);
-                setSelectedProjectId(list[0].id);
+                setSelectedProjectId((current) => current || list[0].id);
                 setRealProjectId(list[0].id);
                 list.forEach((p) => {
                     dispatch(addProject({

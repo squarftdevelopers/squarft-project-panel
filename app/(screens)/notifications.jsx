@@ -1,3 +1,4 @@
+import { getRouteFromNotificationData } from "../../services/notificationRouting";
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, Pressable, StatusBar, Platform, ScrollView, RefreshControl } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -59,7 +60,7 @@ export default function Notifications() {
                 title: n.title,
                 description: n.body,
                 watched: Boolean(n.is_read),
-                target: n.metadata?.route || null,
+                target: getRouteFromNotificationData(n.metadata || {}),
                 type: n.type || "default",
                 time: n.sent_at ? new Date(n.sent_at).toLocaleDateString() : "Recently",
             }));
@@ -105,7 +106,7 @@ export default function Notifications() {
                 console.warn("Failed to mark read:", err.message);
             }
         }
-        if (item.target && item.target !== "/(tabs)/home") {
+        if (item.target) {
             router.push(item.target);
         }
     };

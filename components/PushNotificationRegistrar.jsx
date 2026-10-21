@@ -1,15 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useNotificationResponse } from "../services/useNotificationResponse";
+import { useEffect } from "react";
 import { AppState } from "react-native";
 import * as Notifications from "expo-notifications";
 import { useDispatch, useSelector } from "react-redux";
 import { addNotification, replaceNotifications } from "../store/slices/notificationSlice";
 import { hydrateNotificationsFromStorage } from "../store/store";
 import {
-    getInitialNotificationResponseAsync,
     primePushNotificationsAsync,
     registerPushNotificationsAsync,
 } from "../services/pushNotifications";
-import { routeNotificationResponse } from "../services/notificationRouting";
+import { getRouteFromNotificationData, routeNotificationResponse } from "../services/notificationRouting";
 import {
     buildProjectPanelNotificationContent,
     getNotificationEventKeyFromData,
@@ -24,7 +24,7 @@ const mapApiNotification = (notification) => ({
     description: notification.body,
     message: notification.body,
     watched: Boolean(notification.is_read),
-    target: notification.metadata?.route || null,
+    target: getRouteFromNotificationData(notification.metadata || {}),
     type: notification.type || "default",
     time: notification.sent_at ? new Date(notification.sent_at).toLocaleDateString() : "Recently",
 });
@@ -47,7 +47,7 @@ export default function PushNotificationRegistrar() {
     const dispatch = useDispatch();
     const { isLoggedIn, user, token } = useSelector((state) => state.auth);
     const notificationsHydrated = useSelector((state) => state.notifications.hydrated);
-    const hasHandledInitialResponse = useRef(false);
+    useNotificationResponse(routeNotificationResponse);
 
     useEffect(() => {
         hydrateNotificationsFromStorage();
@@ -90,23 +90,8 @@ export default function PushNotificationRegistrar() {
             dispatch(addNotification(toStoreNotification(notification)));
         });
 
-        const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
-            routeNotificationResponse(response);
-        });
-
-        getInitialNotificationResponseAsync()
-            .then((response) => {
-                if (!response || hasHandledInitialResponse.current) return;
-                hasHandledInitialResponse.current = true;
-                routeNotificationResponse(response);
-            })
-            .catch((error) => {
-                console.warn("[PUSH] Initial notification response failed:", error.message);
-            });
-
         return () => {
             receivedSubscription.remove();
-            responseSubscription.remove();
         };
     }, [dispatch]);
 

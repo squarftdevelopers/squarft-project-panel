@@ -114,7 +114,7 @@ function SessionExpiryGuard() {
 
 export default function RootLayout() {
     const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
-    const [fontsLoaded] = useFonts({
+    const [fontsLoaded, fontError] = useFonts({
         Manrope_500Medium: require("../assets/fonts/deals/Manrope_500Medium.ttf"),
         Manrope_700Bold: require("../assets/fonts/deals/Manrope_700Bold.ttf"),
         Inter_500Medium: require("../assets/fonts/deals/Inter_500Medium.ttf"),
@@ -127,12 +127,12 @@ export default function RootLayout() {
     });
 
     useEffect(() => {
-        if (!fontsLoaded) return undefined;
+        if (!fontsLoaded && !fontError) return undefined;
         const timer = setTimeout(() => SplashScreen.hideAsync(), 180);
         return () => clearTimeout(timer);
-    }, [fontsLoaded]);
+    }, [fontsLoaded, fontError]);
 
-    if (!fontsLoaded) return null;
+    if (!fontsLoaded && !fontError) return null;
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
